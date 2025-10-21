@@ -2,10 +2,11 @@
 b = "build"
 r = "run"
 t = "test"
+c = "check"
 br = "build --release"
 rr = "run --release"
 tr = "test --release"
-c = "check"
+cr = "check --release"
 d = "doc"
 rm = "remove"
 
