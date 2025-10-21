@@ -414,8 +414,33 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `angle` - The hue rotation angle in degrees (0 for unchanged, 360 for full rotation).
     ///
-    fn _color_transform_hue_rotate(_input: &Self, _output: &mut Self, _angle: f32) {
-        unimplemented!()
+    fn color_transform_hue_rotate(input: &mut Self, output: &mut Self, angle: f32) {
+        let a1 = f32::cos(deg2rad(angle));
+        let a2 = f32::sin(deg2rad(angle));
+        let matrix = [
+            0.213 + a1 * 0.787 - a2 * 0.213,
+            0.715 - a1 * 0.715 - a2 * 0.715,
+            0.072 - a1 * 0.072 + a2 * 0.928,
+            0.0,
+            0.0,
+            0.213 - a1 * 0.213 + a2 * 0.143,
+            0.715 + a1 * 0.285 + a2 * 0.140,
+            0.072 - a1 * 0.072 - a2 * 0.283,
+            0.0,
+            0.0,
+            0.213 - a1 * 0.213 - a2 * 0.787,
+            0.715 - a1 * 0.715 + a2 * 0.715,
+            0.072 + a1 * 0.928 + a2 * 0.072,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+        ];
+
+        Self::color_transform(input, output, matrix);
     }
 
     ///
@@ -431,8 +456,27 @@ impl<'a> Surface<'a> {
     /// * `input` - in The input surface.
     /// * `output` - out The output surface.
     ///
-    fn _color_transform_luminance_to_alpha(_input: &Self, _output: &mut Self) {
-        unimplemented!()
+    fn color_transform_luminance_to_alpha(input: &mut Self, output: &mut Self) {
+        overlap_surface(input, output);
+
+        for y in 0..output.height {
+            for x in 0..output.width {
+                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
+
+                let l = r as f32 * 0.2125 + g as f32 * 0.7154 + b as f32 * 0.0721;
+
+                store_pixel(
+                    output,
+                    x,
+                    y,
+                    &mut 0,
+                    &mut 0,
+                    &mut 0,
+                    &mut clamp_pixel(l as u32),
+                );
+            }
+        }
     }
 
     ///
