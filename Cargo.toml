@@ -1,0 +1,52 @@
+[package]
+name = "plutofilter-rs"
+version = "0.1.0"
+edition = "2024"
+authors = ["Mimanshu Maheshwari <maheshwarimimanshu@gmail.com>"]
+description = "Port of https://github.com/sammycage/plutofilter to rust"
+repository = "https://github.com/mimanshu-maheshwari/plutofilter-rs.git"
+readme = "README.md"
+license-file = "LICENSE"
+license = "MIT"
+keywords = ["image", "filter", "plutofilter", "rendering", "processing"]
+categories = ["rendering", "visualization", "multimedia::images"]
+
+
+[dependencies]
+
+# optimizations
+[profile.dev]
+opt-level = 0
+debug = true
+strip = "none"
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+rpath = false
+
+[profile.test]
+opt-level = 2          # Use slightly better optimizations.
+overflow-checks = true # Disable integer overflow checks.
+debug = 1
+strip = false
+
+[profile.bench]
+opt-level = 3           # Use slightly better optimizations.
+overflow-checks = false # Disable integer overflow checks.
+debug = 0
+strip = true
+
+[profile.release]
+opt-level = 3
+debug = false
+strip = "none"
+debug-assertions = false
+overflow-checks = false
+lto = false
+panic = 'unwind'
+incremental = false
+codegen-units = 16
+rpath = false
