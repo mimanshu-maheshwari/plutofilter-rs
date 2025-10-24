@@ -4,6 +4,8 @@ mod error;
 // mod pixel;
 mod utils;
 
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{error::SurfaceError, utils::*};
 
 ///
@@ -66,15 +68,15 @@ pub struct Surface<'a> {
     pub(crate) pixels: &'a mut [u32],
 
     /// The width of the surface in pixels.
-    pub(crate) width: u16,
+    pub(crate) width: usize,
 
     /// The height of the surface in pixels.
-    pub(crate) height: u16,
+    pub(crate) height: usize,
 
     /// The number of pixels per row.
     ///
     /// Must be greater than or equal to `width`.
-    pub(crate) stride: u16,
+    pub(crate) stride: usize,
 }
 
 impl<'a> Surface<'a> {
@@ -99,22 +101,22 @@ impl<'a> Surface<'a> {
     ///
     pub fn make(
         pixels: &'a mut [u32],
-        width: u16,
-        height: u16,
-        stride: u16,
+        width: usize,
+        height: usize,
+        stride: usize,
     ) -> Result<Self, SurfaceError> {
         if pixels.len() < stride as usize * height as usize {
-            return Err(SurfaceError::InvalidPixelLength);
+            Err(SurfaceError::InvalidPixelLength)
+        } else if stride < width {
+            Err(SurfaceError::StrideLessThanWidth)
+        } else {
+            Ok(Self {
+                pixels,
+                width,
+                height,
+                stride,
+            })
         }
-        if stride < width {
-            return Err(SurfaceError::InvalidStrideOrWidth);
-        }
-        Ok(Self {
-            pixels,
-            width,
-            height,
-            stride,
-        })
     }
 
     /// Creates a subregion of an existing surface.
@@ -131,10 +133,10 @@ impl<'a> Surface<'a> {
     ///
     fn make_sub(
         &'a mut self,
-        mut x: u16,
-        mut y: u16,
-        mut width: u16,
-        mut height: u16,
+        mut x: usize,
+        mut y: usize,
+        mut width: usize,
+        mut height: usize,
     ) -> Result<Self, SurfaceError> {
         if x > self.width {
             x = self.width;
@@ -206,7 +208,7 @@ impl<'a> Surface<'a> {
                 a = clamp_pixel(aa as u32);
 
                 premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
-                store_pixel(output, x, y, &mut r, &mut g, &mut b, &mut a);
+                store_pixel(output, x, y, r, g, b, a);
             }
         }
     }
@@ -466,15 +468,7 @@ impl<'a> Surface<'a> {
 
                 let l = r as f32 * 0.2125 + g as f32 * 0.7154 + b as f32 * 0.0721;
 
-                store_pixel(
-                    output,
-                    x,
-                    y,
-                    &mut 0,
-                    &mut 0,
-                    &mut 0,
-                    &mut clamp_pixel(l as u32),
-                );
+                store_pixel(output, x, y, 0, 0, 0, clamp_pixel(l as u32));
             }
         }
     }
@@ -488,8 +482,17 @@ impl<'a> Surface<'a> {
     /// * `input`  - in The input surface.
     /// * `output` - out The output surface.
     ///
-    fn _color_transform_srgb_to_linear_rgb(_input: &Self, _output: &mut Self) {
-        unimplemented!()
+    fn color_transform_srgb_to_linear_rgb(input: &mut Self, output: &mut Self) {
+        overlap_surface(input, output);
+        for y in 0..output.height {
+            for x in 0..output.width {
+                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
+                srgb_to_linear_rgb(&mut r, &mut g, &mut b);
+                premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
+                store_pixel(output, x, y, r, g, b, a);
+            }
+        }
     }
 
     ///
@@ -501,8 +504,17 @@ impl<'a> Surface<'a> {
     /// * `input` - in The input surface.
     /// * `output` - out The output surface.
     ///
-    fn _color_transform_linear_rgb_to_srgb(_input: &Self, _output: &mut Self) {
-        unimplemented!()
+    fn color_transform_linear_rgb_to_srgb(input: &mut Self, output: &mut Self) {
+        overlap_surface(input, output);
+        for y in 0..output.height {
+            for x in 0..output.width {
+                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
+                liner_rgb_to_srgb(&mut r, &mut g, &mut b);
+                premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
+                store_pixel(output, x, y, r, g, b, a);
+            }
+        }
     }
 
     ///
@@ -518,13 +530,63 @@ impl<'a> Surface<'a> {
     /// * `std_deviation_x` - The standard deviation of the blur along the X axis.
     /// * `std_deviation_y` - The standard deviation of the blur along the Y axis.
     ///
-    fn _plutofilter_gaussian_blur(
-        _input: &Self,
-        _output: &mut Self,
-        _std_deviation_x: f32,
-        _std_deviation_y: f32,
+    fn gaussian_blur(
+        input: &mut Self,
+        output: &mut Self,
+        std_deviation_x: f32,
+        std_deviation_y: f32,
     ) {
-        unimplemented!()
+        overlap_surface(input, output);
+        let kernel_width = calc_kernel_size(std_deviation_x);
+        let kernel_height = calc_kernel_size(std_deviation_y);
+        if kernel_width <= 0 && kernel_height <= 0 {
+            let size = output.width * output.height;
+            for i in 0..size {
+                output.pixels[i] = input.pixels[i];
+            }
+            return;
+        }
+
+        // TODO: handle this
+        if kernel_height < 0 || kernel_width < 0 {
+            panic!("kernel_height={kernel_height}, kernel_width={kernel_width} ")
+        }
+
+        let mut kernel_width = kernel_width as usize;
+        let mut kernel_height = kernel_height as usize;
+
+        if kernel_width > MAX_KERNEL_SIZE {
+            kernel_width = MAX_KERNEL_SIZE;
+        }
+        if kernel_height > MAX_KERNEL_SIZE {
+            kernel_height = MAX_KERNEL_SIZE;
+        }
+
+        let mut intermediate = [0; MAX_KERNEL_SIZE];
+
+        let output: Rc<RefCell<_>> = Rc::new(RefCell::new(output));
+        let input: Rc<RefCell<_>> = Rc::new(RefCell::new(input));
+        box_blur(
+            Rc::clone(&input),
+            Rc::clone(&output),
+            &mut intermediate,
+            kernel_width,
+            kernel_height,
+        );
+        box_blur(
+            Rc::clone(&output),
+            Rc::clone(&output),
+            &mut intermediate,
+            kernel_width,
+            kernel_height,
+        );
+        box_blur(
+            Rc::clone(&output),
+            Rc::clone(&output),
+            &mut intermediate,
+            kernel_width,
+            kernel_height,
+        );
     }
 
     ///
@@ -539,8 +601,8 @@ impl<'a> Surface<'a> {
     /// * `out` - The output surface.
     /// * `mode` - The blend mode to apply.
     ///
-    fn _blend(_in1: &Self, _in2: &Self, _out: &mut Self, _mode: &mut Self) {
-        unimplemented!()
+    fn blend(in1: &Self, in2: &Self, out: &mut Self, mode: &mut Self) {
+        //
     }
 
     ///
