@@ -1,11 +1,11 @@
 [alias]
 b = "build"
 r = "run"
-t = "test"
+t = "test --features image"
 c = "check"
 br = "build --release"
 rr = "run --release"
-tr = "test --release"
+tr = "test --release --features image"
 cr = "check --release"
 d = "doc"
 rm = "remove"

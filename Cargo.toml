@@ -18,6 +18,12 @@ name = "load-image"
 path = "examples/load-image.rs"
 required-featuers = ["image"]
 
+
+[[test]]
+name = "blend-mode"
+path = "tests/blend-modes.rs"
+required-featuers = ["image"]
+
 [features]
 image = ["dep:image"]
 

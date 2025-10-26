@@ -78,6 +78,9 @@ pub struct Surface<'a> {
 }
 
 impl<'a> Surface<'a> {
+    pub fn pixels(&'a mut self) -> &'a mut [u32] {
+        self.pixels
+    }
     /// Creates a surface from a raw pixel buffer.
     ///
     /// # Arguments

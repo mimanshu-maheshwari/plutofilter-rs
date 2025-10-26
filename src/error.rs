@@ -9,6 +9,8 @@ pub enum SurfaceError {
     InvalidHeight,
 }
 
+impl std::error::Error for SurfaceError {}
+
 impl Display for SurfaceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use SurfaceError::*;
