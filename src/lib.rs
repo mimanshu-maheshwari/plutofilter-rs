@@ -93,8 +93,8 @@ impl<'a> Surface<'a> {
     /// let stride  = 320;
     /// let width   = 300;
     /// let height  = 280;
-    /// let pixels  = vec![0; 320 * 280];
-    /// let surface = Surface::make(&pixels, width, height, stride).expect("ERROR: Failed to make surface struct.");
+    /// let mut pixels  = vec![0; 320 * 280];
+    /// let surface = Surface::make(&mut pixels, width, height, stride).expect("ERROR: Failed to make surface struct.");
     /// ```
     ///
     pub fn make(
@@ -440,7 +440,7 @@ impl<'a> Surface<'a> {
     ///Replaces the alpha channel with the computed luminance of the color channels.
     ///The RGB channels are set to zero. Luminance is calculated using the formula:
     ///
-    ///    alpha = 0.2126 * R + 0.7152 * G + 0.0722 * B
+    ///alpha = 0.2126 * R + 0.7152 * G + 0.0722 * B
     ///
     ///The input and output surfaces may refer to the same buffer.
     /// # Arguments
