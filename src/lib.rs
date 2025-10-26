@@ -533,7 +533,7 @@ impl<'a> Surface<'a> {
             return;
         }
 
-        // TODO: handle this
+        // should not panic as f32 values for standard deviations are positive
         if kernel_height < 0 || kernel_width < 0 {
             panic!("kernel_height={kernel_height}, kernel_width={kernel_width} ")
         }

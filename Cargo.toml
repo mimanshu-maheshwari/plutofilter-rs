@@ -5,14 +5,24 @@ edition = "2024"
 authors = ["Mimanshu Maheshwari <maheshwarimimanshu@gmail.com>"]
 description = "Port of https://github.com/sammycage/plutofilter to rust"
 repository = "https://github.com/mimanshu-maheshwari/plutofilter-rs.git"
+homepage = "https://github.com/mimanshu-maheshwari/plutofilter-rs.git"
 readme = "README.md"
 # license-file = "LICENSE"
 license = "MIT"
 keywords = ["image", "filter", "plutofilter", "rendering", "processing"]
 categories = ["rendering", "visualization", "multimedia::images"]
+exclude = ["/res/**"]
 
+[[example]]
+name = "load-image"
+path = "examples/load-image.rs"
+required-featuers = ["image"]
+
+[features]
+image = ["dep:image"]
 
 [dependencies]
+image = { version = "0.25.8", optional = true }
 
 # optimizations
 [profile.dev]
@@ -34,17 +44,17 @@ debug = 1
 strip = false
 
 [profile.bench]
-opt-level = 3           # Use slightly better optimizations.
-overflow-checks = false # Disable integer overflow checks.
+opt-level = 3          # Use slightly better optimizations.
+overflow-checks = true # Disable integer overflow checks.
 debug = 0
 strip = true
 
 [profile.release]
 opt-level = 3
 debug = false
-strip = "none"
+strip = true
 debug-assertions = false
-overflow-checks = false
+overflow-checks = true
 lto = false
 panic = 'unwind'
 incremental = false

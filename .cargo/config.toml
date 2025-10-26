@@ -9,6 +9,7 @@ tr = "test --release"
 cr = "check --release"
 d = "doc"
 rm = "remove"
+e_load_image = "run --example load-image --features image"
 
 # Windows
 [target.x86_64-pc-windows-msvc]
