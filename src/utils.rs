@@ -37,7 +37,7 @@ pub(crate) fn get_pixel_mut<'a>(surface: &'a mut Surface, x: usize, y: usize) ->
     // let surface_stride = surface.stride;
     surface
         .pixels
-        .get_mut(y * surface.stride as usize + x)
+        .get_mut(y * surface.stride + x)
         .expect("Invalid index while getting mutable pointer to pixel")
 }
 
@@ -505,7 +505,7 @@ pub(crate) fn blend_multiply(input1: &mut Surface, input2: &mut Surface, output:
     }
 }
 
-pub fn blend_screen_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
+pub fn blend_screen_op(s: u32, d: u32, _sa: u32, _da: u32) -> u32 {
     s + d - div255(s * d)
 }
 
@@ -596,9 +596,7 @@ pub(crate) fn blend_lighten(input1: &mut Surface, input2: &mut Surface, output: 
 pub fn blend_color_dodge_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
     if d == 0 {
         div255(s * (255 - da))
-    } else if s == sa {
-        div255(sa * da + s * (255 - da) + d * (255 - sa))
-    } else if da * (sa - s) < d * sa {
+    } else if s == sa || da * (sa - s) < d * sa {
         div255(sa * da + s * (255 - da) + d * (255 - sa))
     } else {
         div255(sa * ((d * sa) / (sa - s)) + s * (255 - da) + d * (255 - sa))
@@ -722,7 +720,7 @@ pub(crate) fn blend_difference(input1: &mut Surface, input2: &mut Surface, outpu
     }
 }
 
-pub fn blend_exclusion_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
+pub fn blend_exclusion_op(s: u32, d: u32, _sa: u32, _da: u32) -> u32 {
     div255(255 * (s + d) - 2 * s * d)
 }
 

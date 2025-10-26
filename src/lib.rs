@@ -1,5 +1,7 @@
 //! PlutoFilter implementation
 
+// TODO: input output issue ?
+
 mod error;
 // mod pixel;
 mod utils;
@@ -8,9 +10,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{error::SurfaceError, utils::*};
 
-///
 /// Blend modes for combining source and backdrop surfaces.
-///
 pub enum BlendMode {
     /// Standard alpha compositing (source over backdrop)
     Normal,
@@ -38,9 +38,7 @@ pub enum BlendMode {
     Exclusion,
 }
 
-///
 /// Compositing operators for combining source and backdrop surfaces.
-///
 pub enum CompositeOperator {
     /// Display source over backdrop
     Over,
@@ -157,7 +155,6 @@ impl<'a> Surface<'a> {
         Self::make(pixels, width, height, self.stride)
     }
 
-    ///
     /// Applies a 5x4 color transformation matrix to each pixel in the input surface.
     ///
     /// The transformation is applied in-place from `in` to `out`, using a matrix that operates
@@ -232,7 +229,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     /// Adjusts the brightness of each pixel by a uniform amount.
     ///
     /// Multiplies the color channels (red, green, blue) by the given amount. The result is clamped to the range [0, 255].
@@ -250,7 +246,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     /// Inverts the color channels of each pixel by a uniform amount.
     ///
     ///Linearly interpolates between the original color and its inverse based on the given amount.
@@ -271,7 +266,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     /// Adjusts the contrast of each pixel by a uniform amount.
     ///
     ///Scales the color channels (red, green, blue) away from or toward the midpoint (0.5) by the given amount.
@@ -291,7 +285,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     /// Adjusts the saturation of each pixel by a uniform amount.
     ///
     ///Modifies the intensity of color while preserving luminance. A value of 0 produces a fully desaturated result.
@@ -328,7 +321,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     /// Converts each pixel toward grayscale by a uniform amount.
     ///
     ///Reduces the influence of color while preserving luminance. A value of 1 produces a fully grayscale result.
@@ -366,7 +358,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     /// Applies a sepia tone to each pixel by a uniform amount.
     ///
     ///Shifts the colors toward warm brown tones, simulating the appearance of old photographs.
@@ -405,7 +396,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     /// Rotates the hue of each pixel by a given angle.
     ///
     ///Shifts the hue component of the color while preserving luminance and saturation.
@@ -445,7 +435,6 @@ impl<'a> Surface<'a> {
         Self::color_transform(input, output, matrix);
     }
 
-    ///
     ///Sets the alpha channel of each pixel based on its luminance.
     ///
     ///Replaces the alpha channel with the computed luminance of the color channels.
@@ -473,7 +462,6 @@ impl<'a> Surface<'a> {
         }
     }
 
-    ///
     /// Converts the color channels from sRGB to linear RGB.
     ///
     ///Applies gamma correction to convert red, green, and blue channels from sRGB to linear space.
@@ -495,7 +483,6 @@ impl<'a> Surface<'a> {
         }
     }
 
-    ///
     ///Converts the color channels from linear RGB to sRGB.
     ///
     ///Applies gamma encoding to convert red, green, and blue channels from linear space to sRGB.
@@ -517,7 +504,6 @@ impl<'a> Surface<'a> {
         }
     }
 
-    ///
     /// Applies a Gaussian blur to the input surface.
     ///
     ///Performs separable convolution with a Gaussian kernel along the X and Y axes.
@@ -589,7 +575,6 @@ impl<'a> Surface<'a> {
         );
     }
 
-    ///
     /// Blends two input surfaces using the specified blend mode.
     ///
     ///Applies the selected blend mode to combine `in1` (source) over `in2` (backdrop).
@@ -619,7 +604,6 @@ impl<'a> Surface<'a> {
         }
     }
 
-    ///
     /// Composites two input surfaces using the specified operator.
     ///
     ///Applies the selected compositing rule to combine `in1` (source) over `in2` (backdrop).
@@ -642,7 +626,6 @@ impl<'a> Surface<'a> {
         }
     }
 
-    ///
     /// Composites two input surfaces using an arithmetic combination of their color components.
     ///
     ///Computes each output channel as:  
