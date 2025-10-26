@@ -11,7 +11,7 @@ use crate::{error::SurfaceError, utils::*};
 ///
 /// Blend modes for combining source and backdrop surfaces.
 ///
-enum BlendMode {
+pub enum BlendMode {
     /// Standard alpha compositing (source over backdrop)
     Normal,
     /// Multiplies source and backdrop, producing a darker result
@@ -41,7 +41,7 @@ enum BlendMode {
 ///
 /// Compositing operators for combining source and backdrop surfaces.
 ///
-enum CompositeOperator {
+pub enum CompositeOperator {
     /// Display source over backdrop
     Over,
     /// Keep only portions of source within backdrop
@@ -131,7 +131,7 @@ impl<'a> Surface<'a> {
     /// # Returns
     /// [Surface] referencing the specified subregion, clipped to the bounds of the source surface.
     ///
-    fn make_sub(
+    pub fn make_sub(
         &'a mut self,
         mut x: usize,
         mut y: usize,
@@ -175,7 +175,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `matrix` - A 5x4 color matrix represented as a 20-element float array.
     ///
-    fn color_transform(input: &mut Self, output: &mut Self, matrix: [f32; 20]) {
+    pub fn color_transform(input: &mut Self, output: &mut Self, matrix: [f32; 20]) {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
@@ -223,7 +223,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The opacity multiplier (0 for fully transparent, 1 for unchanged).
     ///
-    fn color_transform_opacity(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_opacity(input: &mut Self, output: &mut Self, amount: f32) {
         let matrix = [
             1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
             0.0, amount, 0.0,
@@ -242,7 +242,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The brightness multiplier (1 for unchanged, <1 to darken, >1 to brighten).
     ///
-    fn color_transform_brightness(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_brightness(input: &mut Self, output: &mut Self, amount: f32) {
         let matrix = [
             amount, 0.0, 0.0, 0.0, 0.0, 0.0, amount, 0.0, 0.0, 0.0, 0.0, 0.0, amount, 0.0, 0.0,
             0.0, 0.0, 0.0, 1.0, 0.0,
@@ -261,7 +261,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The inversion amount (0 for unchanged, 1 for fully inverted).
     ///
-    fn color_transform_invert(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_invert(input: &mut Self, output: &mut Self, amount: f32) {
         let scale = 1.0 - 2.0 * amount;
         let matrix = [
             scale, 0.0, 0.0, 0.0, amount, 0.0, scale, 0.0, 0.0, amount, 0.0, 0.0, scale, 0.0,
@@ -281,7 +281,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The contrast multiplier (1 for unchanged, <1 to reduce contrast, >1 to increase contrast).
     ///
-    fn color_transform_contrast(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_contrast(input: &mut Self, output: &mut Self, amount: f32) {
         let offset = (1.0 - amount) * 0.5;
         let matrix = [
             amount, 0.0, 0.0, 0.0, offset, 0.0, amount, 0.0, 0.0, offset, 0.0, 0.0, amount, 0.0,
@@ -301,7 +301,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The saturation multiplier (1 for unchanged, 0 for fully desaturated, >1 to increase saturation).
     ///
-    fn color_transform_saturate(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_saturate(input: &mut Self, output: &mut Self, amount: f32) {
         let matrix = [
             0.213 + 0.787 * amount,
             0.715 - 0.715 * amount,
@@ -338,7 +338,7 @@ impl<'a> Surface<'a> {
     /// *`output` - The output surface.
     /// *`amount` -  The grayscale amount (0 for unchanged, 1 for fully grayscale).
     ///
-    fn color_transform_grayscale(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_grayscale(input: &mut Self, output: &mut Self, amount: f32) {
         let inv_amount = 1.0 - amount;
         let matrix = [
             inv_amount + amount * 0.2126,
@@ -377,7 +377,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The sepia amount (0 for unchanged, 1 for fully sepia).
     ///
-    fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
         let inv_amount = 1.0 - amount;
         let matrix = [
             0.393 + 0.607 * inv_amount,
@@ -416,7 +416,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `angle` - The hue rotation angle in degrees (0 for unchanged, 360 for full rotation).
     ///
-    fn color_transform_hue_rotate(input: &mut Self, output: &mut Self, angle: f32) {
+    pub fn color_transform_hue_rotate(input: &mut Self, output: &mut Self, angle: f32) {
         let a1 = f32::cos(deg2rad(angle));
         let a2 = f32::sin(deg2rad(angle));
         let matrix = [
@@ -458,7 +458,7 @@ impl<'a> Surface<'a> {
     /// * `input` - in The input surface.
     /// * `output` - out The output surface.
     ///
-    fn color_transform_luminance_to_alpha(input: &mut Self, output: &mut Self) {
+    pub fn color_transform_luminance_to_alpha(input: &mut Self, output: &mut Self) {
         overlap_surface(input, output);
 
         for y in 0..output.height {
@@ -482,7 +482,7 @@ impl<'a> Surface<'a> {
     /// * `input`  - in The input surface.
     /// * `output` - out The output surface.
     ///
-    fn color_transform_srgb_to_linear_rgb(input: &mut Self, output: &mut Self) {
+    pub fn color_transform_srgb_to_linear_rgb(input: &mut Self, output: &mut Self) {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
@@ -504,7 +504,7 @@ impl<'a> Surface<'a> {
     /// * `input` - in The input surface.
     /// * `output` - out The output surface.
     ///
-    fn color_transform_linear_rgb_to_srgb(input: &mut Self, output: &mut Self) {
+    pub fn color_transform_linear_rgb_to_srgb(input: &mut Self, output: &mut Self) {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
@@ -530,7 +530,7 @@ impl<'a> Surface<'a> {
     /// * `std_deviation_x` - The standard deviation of the blur along the X axis.
     /// * `std_deviation_y` - The standard deviation of the blur along the Y axis.
     ///
-    fn gaussian_blur(
+    pub fn gaussian_blur(
         input: &mut Self,
         output: &mut Self,
         std_deviation_x: f32,
@@ -601,8 +601,22 @@ impl<'a> Surface<'a> {
     /// * `out` - The output surface.
     /// * `mode` - The blend mode to apply.
     ///
-    fn blend(in1: &Self, in2: &Self, out: &mut Self, mode: &mut Self) {
-        //
+    pub fn blend(input1: &mut Self, input2: &mut Self, output: &mut Self, mode: BlendMode) {
+        overlap_surface3(input1, input2, output);
+        match mode {
+            BlendMode::Normal => blend_normal(input1, input2, output),
+            BlendMode::Multiply => blend_multiply(input1, input2, output),
+            BlendMode::Screen => blend_screen(input1, input2, output),
+            BlendMode::Overlay => blend_overlay(input1, input2, output),
+            BlendMode::Darken => blend_darken(input1, input2, output),
+            BlendMode::Lighten => blend_lighten(input1, input2, output),
+            BlendMode::ColorDodge => blend_color_dodge(input1, input2, output),
+            BlendMode::ColorBurn => blend_color_burn(input1, input2, output),
+            BlendMode::HardLight => blend_hard_light(input1, input2, output),
+            BlendMode::SoftLight => blend_soft_light(input1, input2, output),
+            BlendMode::Difference => blend_difference(input1, input2, output),
+            BlendMode::Exclusion => blend_exclusion(input1, input2, output),
+        }
     }
 
     ///
@@ -617,8 +631,15 @@ impl<'a> Surface<'a> {
     /// * `out` - The output surface.
     /// * `op` - The compositing operator to apply.
     ///
-    fn _composite(_in1: &Self, _in2: &Self, _out: &mut Self, _op: &mut Self) {
-        unimplemented!()
+    pub fn composite(in1: &mut Self, in2: &mut Self, out: &mut Self, op: CompositeOperator) {
+        overlap_surface3(in1, in2, out);
+        match op {
+            CompositeOperator::Over => composite_over(in1, in2, out),
+            CompositeOperator::In => composite_in(in1, in2, out),
+            CompositeOperator::Out => composite_out(in1, in2, out),
+            CompositeOperator::Atop => composite_atop(in1, in2, out),
+            CompositeOperator::Xor => composite_xor(in1, in2, out),
+        }
     }
 
     ///
@@ -639,15 +660,34 @@ impl<'a> Surface<'a> {
     /// * `k3` - The coefficient for in2.
     /// * `k4` - The constant bias term.
     ///
-    fn _composite_arithmetic(
-        _in1: &Self,
-        _in2: &Self,
-        _out: &mut Self,
-        _k1: f32,
-        _k2: f32,
-        _k3: f32,
-        _k4: f32,
+    pub fn composite_arithmetic(
+        in1: &mut Self,
+        in2: &mut Self,
+        out: &mut Self,
+        k1: f32,
+        k2: f32,
+        k3: f32,
+        k4: f32,
     ) {
-        unimplemented!()
+        overlap_surface3(in1, in2, out);
+
+        for y in 0..out.height {
+            for x in 0..out.width {
+                let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
+                let (dr, dg, db, da) = init_load_pixel(in2, x, y);
+
+                let (sr, sg, sb, sa) = (sr as f32, sg as f32, sb as f32, sa as f32);
+                let (dr, dg, db, da) = (dr as f32, dg as f32, db as f32, da as f32);
+
+                let fdr = k1 * ((sr * dr) / 255.0) + k2 * sr + k3 * dr + k4 * 255.0;
+                let fdg = k1 * ((sg * dg) / 255.0) + k2 * sg + k3 * dg + k4 * 255.0;
+                let fdb = k1 * ((sb * db) / 255.0) + k2 * sb + k3 * db + k4 * 255.0;
+                let fda = k1 * ((sa * da) / 255.0) + k2 * sa + k3 * da + k4 * 255.0;
+
+                let (fdr, fdg, fdb, fda) = (fdr as u32, fdg as u32, fdb as u32, fda as u32);
+
+                clamp_and_store_pixel(out, x, y, fdr, fdg, fdb, fda);
+            }
+        }
     }
 }
