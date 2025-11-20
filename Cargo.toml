@@ -25,6 +25,7 @@ path = "tests/blend-modes.rs"
 required-featuers = ["image"]
 
 [features]
+default = ["image"]
 image = ["dep:image"]
 
 [dependencies]

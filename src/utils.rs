@@ -1,7 +1,8 @@
-use std::{cell::RefCell, f64::consts::PI, rc::Rc};
+use std::{cell::RefCell, f32::consts::PI, rc::Rc};
 
 use crate::Surface;
-pub(crate) const KERNEL_FACTOR: f64 = 1.8799712059732503;
+#[allow(clippy::excessive_precision)]
+pub(crate) const KERNEL_FACTOR: f32 = 1.8799712059732503;
 pub(crate) const MAX_KERNEL_SIZE: usize = 512;
 
 #[inline(always)]
@@ -174,7 +175,7 @@ pub(crate) fn overlap_surface(a: &mut Surface, b: &mut Surface) {
     a.height = b.height;
 }
 
-pub(crate) fn deg2rad(angle: f64) -> f64 {
+pub(crate) fn deg2rad(angle: f32) -> f32 {
     angle * (PI / 180.0)
 }
 
@@ -239,8 +240,8 @@ pub(crate) fn blur_store_pixel(
     store_pixel(output, x, y, r / k, g / k, b / k, a / k);
 }
 
-pub(crate) fn calc_kernel_size(std_deviation: f64) -> i32 {
-    f64::floor(std_deviation * KERNEL_FACTOR + 0.5) as i32
+pub(crate) fn calc_kernel_size(std_deviation: f32) -> i32 {
+    f32::floor(std_deviation * KERNEL_FACTOR + 0.5) as i32
 }
 
 pub(crate) fn box_blur(
@@ -650,7 +651,7 @@ pub fn blend_soft_light_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
             + temp)
             / 65025
     } else {
-        ((d * sa * 255 + da * (s2 - sa) * (f64::sqrt(d_np as f64 * 255.0) as u32) - d_np) + temp)
+        ((d * sa * 255 + da * (s2 - sa) * (f32::sqrt(d_np as f32 * 255.0) as u32) - d_np) + temp)
             / 65025
     }
 }
