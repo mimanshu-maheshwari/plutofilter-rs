@@ -106,7 +106,7 @@ impl<'a> Surface<'a> {
         height: usize,
         stride: usize,
     ) -> Result<Self, SurfaceError> {
-        if pixels.len() < stride as usize * height as usize {
+        if pixels.len() < stride * height {
             Err(SurfaceError::InvalidPixelLength)
         } else if stride < width {
             Err(SurfaceError::StrideLessThanWidth)
@@ -154,7 +154,7 @@ impl<'a> Surface<'a> {
         if y + height > self.height {
             height = self.height - y;
         }
-        let pixels = &mut (self.pixels[(y as usize * self.stride as usize + x as usize)..]);
+        let pixels = &mut (self.pixels[(y * self.stride + x)..]);
         Self::make(pixels, width, height, self.stride)
     }
 
@@ -175,32 +175,32 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `matrix` - A 5x4 color matrix represented as a 20-element float array.
     ///
-    pub fn color_transform(input: &mut Self, output: &mut Self, matrix: [f32; 20]) {
+    pub fn color_transform(input: &mut Self, output: &mut Self, matrix: [f64; 20]) {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
                 let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
-                let rr = r as f32 * matrix[0]
-                    + g as f32 * matrix[1]
-                    + b as f32 * matrix[2]
-                    + a as f32 * matrix[3]
+                let rr = r as f64 * matrix[0]
+                    + g as f64 * matrix[1]
+                    + b as f64 * matrix[2]
+                    + a as f64 * matrix[3]
                     + matrix[4] * 255.0;
-                let gg = r as f32 * matrix[5]
-                    + g as f32 * matrix[6]
-                    + b as f32 * matrix[7]
-                    + a as f32 * matrix[8]
+                let gg = r as f64 * matrix[5]
+                    + g as f64 * matrix[6]
+                    + b as f64 * matrix[7]
+                    + a as f64 * matrix[8]
                     + matrix[9] * 255.0;
-                let bb = r as f32 * matrix[10]
-                    + g as f32 * matrix[11]
-                    + b as f32 * matrix[12]
-                    + a as f32 * matrix[13]
+                let bb = r as f64 * matrix[10]
+                    + g as f64 * matrix[11]
+                    + b as f64 * matrix[12]
+                    + a as f64 * matrix[13]
                     + matrix[14] * 255.0;
-                let aa = r as f32 * matrix[15]
-                    + g as f32 * matrix[16]
-                    + b as f32 * matrix[17]
-                    + a as f32 * matrix[18]
+                let aa = r as f64 * matrix[15]
+                    + g as f64 * matrix[16]
+                    + b as f64 * matrix[17]
+                    + a as f64 * matrix[18]
                     + matrix[19] * 255.0;
                 r = clamp_pixel(rr as u32);
                 g = clamp_pixel(gg as u32);
@@ -223,7 +223,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The opacity multiplier (0 for fully transparent, 1 for unchanged).
     ///
-    pub fn color_transform_opacity(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_opacity(input: &mut Self, output: &mut Self, amount: f64) {
         let matrix = [
             1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
             0.0, amount, 0.0,
@@ -241,7 +241,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The brightness multiplier (1 for unchanged, <1 to darken, >1 to brighten).
     ///
-    pub fn color_transform_brightness(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_brightness(input: &mut Self, output: &mut Self, amount: f64) {
         let matrix = [
             amount, 0.0, 0.0, 0.0, 0.0, 0.0, amount, 0.0, 0.0, 0.0, 0.0, 0.0, amount, 0.0, 0.0,
             0.0, 0.0, 0.0, 1.0, 0.0,
@@ -259,7 +259,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The inversion amount (0 for unchanged, 1 for fully inverted).
     ///
-    pub fn color_transform_invert(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_invert(input: &mut Self, output: &mut Self, amount: f64) {
         let scale = 1.0 - 2.0 * amount;
         let matrix = [
             scale, 0.0, 0.0, 0.0, amount, 0.0, scale, 0.0, 0.0, amount, 0.0, 0.0, scale, 0.0,
@@ -278,7 +278,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The contrast multiplier (1 for unchanged, <1 to reduce contrast, >1 to increase contrast).
     ///
-    pub fn color_transform_contrast(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_contrast(input: &mut Self, output: &mut Self, amount: f64) {
         let offset = (1.0 - amount) * 0.5;
         let matrix = [
             amount, 0.0, 0.0, 0.0, offset, 0.0, amount, 0.0, 0.0, offset, 0.0, 0.0, amount, 0.0,
@@ -297,7 +297,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The saturation multiplier (1 for unchanged, 0 for fully desaturated, >1 to increase saturation).
     ///
-    pub fn color_transform_saturate(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_saturate(input: &mut Self, output: &mut Self, amount: f64) {
         let matrix = [
             0.213 + 0.787 * amount,
             0.715 - 0.715 * amount,
@@ -333,7 +333,7 @@ impl<'a> Surface<'a> {
     /// *`output` - The output surface.
     /// *`amount` -  The grayscale amount (0 for unchanged, 1 for fully grayscale).
     ///
-    pub fn color_transform_grayscale(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_grayscale(input: &mut Self, output: &mut Self, amount: f64) {
         let inv_amount = 1.0 - amount;
         let matrix = [
             inv_amount + amount * 0.2126,
@@ -371,7 +371,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The sepia amount (0 for unchanged, 1 for fully sepia).
     ///
-    pub fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f64) {
         let inv_amount = 1.0 - amount;
         let matrix = [
             0.393 + 0.607 * inv_amount,
@@ -409,9 +409,9 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `angle` - The hue rotation angle in degrees (0 for unchanged, 360 for full rotation).
     ///
-    pub fn color_transform_hue_rotate(input: &mut Self, output: &mut Self, angle: f32) {
-        let a1 = f32::cos(deg2rad(angle));
-        let a2 = f32::sin(deg2rad(angle));
+    pub fn color_transform_hue_rotate(input: &mut Self, output: &mut Self, angle: f64) {
+        let a1 = f64::cos(deg2rad(angle));
+        let a2 = f64::sin(deg2rad(angle));
         let matrix = [
             0.213 + a1 * 0.787 - a2 * 0.213,
             0.715 - a1 * 0.715 - a2 * 0.715,
@@ -458,7 +458,7 @@ impl<'a> Surface<'a> {
                 let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
-                let l = r as f32 * 0.2125 + g as f32 * 0.7154 + b as f32 * 0.0721;
+                let l = r as f64 * 0.2125 + g as f64 * 0.7154 + b as f64 * 0.0721;
 
                 store_pixel(output, x, y, 0, 0, 0, clamp_pixel(l as u32));
             }
@@ -522,8 +522,8 @@ impl<'a> Surface<'a> {
     pub fn gaussian_blur(
         input: &mut Self,
         output: &mut Self,
-        std_deviation_x: f32,
-        std_deviation_y: f32,
+        std_deviation_x: f64,
+        std_deviation_y: f64,
     ) {
         overlap_surface(input, output);
         let kernel_width = calc_kernel_size(std_deviation_x);
@@ -536,7 +536,7 @@ impl<'a> Surface<'a> {
             return;
         }
 
-        // should not panic as f32 values for standard deviations are positive
+        // should not panic as f64 values for standard deviations are positive
         if kernel_height < 0 || kernel_width < 0 {
             panic!("kernel_height={kernel_height}, kernel_width={kernel_width} ")
         }
@@ -650,10 +650,10 @@ impl<'a> Surface<'a> {
         in1: &mut Self,
         in2: &mut Self,
         out: &mut Self,
-        k1: f32,
-        k2: f32,
-        k3: f32,
-        k4: f32,
+        k1: f64,
+        k2: f64,
+        k3: f64,
+        k4: f64,
     ) {
         overlap_surface3(in1, in2, out);
 
@@ -662,8 +662,8 @@ impl<'a> Surface<'a> {
                 let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
                 let (dr, dg, db, da) = init_load_pixel(in2, x, y);
 
-                let (sr, sg, sb, sa) = (sr as f32, sg as f32, sb as f32, sa as f32);
-                let (dr, dg, db, da) = (dr as f32, dg as f32, db as f32, da as f32);
+                let (sr, sg, sb, sa) = (sr as f64, sg as f64, sb as f64, sa as f64);
+                let (dr, dg, db, da) = (dr as f64, dg as f64, db as f64, da as f64);
 
                 let fdr = k1 * ((sr * dr) / 255.0) + k2 * sr + k3 * dr + k4 * 255.0;
                 let fdg = k1 * ((sg * dg) / 255.0) + k2 * sg + k3 * dg + k4 * 255.0;

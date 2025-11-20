@@ -1,7 +1,7 @@
-use std::{cell::RefCell, f32::consts::PI, rc::Rc};
+use std::{cell::RefCell, f64::consts::PI, rc::Rc};
 
 use crate::Surface;
-pub(crate) const KERNEL_FACTOR: f32 = 1.8799712059732503;
+pub(crate) const KERNEL_FACTOR: f64 = 1.8799712059732503;
 pub(crate) const MAX_KERNEL_SIZE: usize = 512;
 
 #[inline(always)]
@@ -174,7 +174,7 @@ pub(crate) fn overlap_surface(a: &mut Surface, b: &mut Surface) {
     a.height = b.height;
 }
 
-pub(crate) fn deg2rad(angle: f32) -> f32 {
+pub(crate) fn deg2rad(angle: f64) -> f64 {
     angle * (PI / 180.0)
 }
 
@@ -231,20 +231,16 @@ const LINEAR_RGB_TO_SRGB_TABLE: [u32;256] = [
 
 pub(crate) fn blur_store_pixel(
     output: &mut Surface,
-    x: usize,
-    y: usize,
-    r: u32,
-    g: u32,
-    b: u32,
-    a: u32,
+    (x, y): (usize, usize),
+    (r, g, b, a): (u32, u32, u32, u32),
     k: usize,
 ) {
     let k = k as u32;
     store_pixel(output, x, y, r / k, g / k, b / k, a / k);
 }
 
-pub(crate) fn calc_kernel_size(std_deviation: f32) -> i32 {
-    f32::floor(std_deviation * KERNEL_FACTOR + 0.5) as i32
+pub(crate) fn calc_kernel_size(std_deviation: f64) -> i32 {
+    f64::floor(std_deviation * KERNEL_FACTOR + 0.5) as i32
 }
 
 pub(crate) fn box_blur(
@@ -283,12 +279,8 @@ pub(crate) fn box_blur(
                 if offset < output.borrow().width {
                     blur_store_pixel(
                         *output.borrow_mut(),
-                        offset,
-                        y,
-                        sum_r,
-                        sum_g,
-                        sum_b,
-                        sum_a,
+                        (offset, y),
+                        (sum_r, sum_g, sum_b, sum_a),
                         kernel_width,
                     );
                 }
@@ -315,12 +307,8 @@ pub(crate) fn box_blur(
                 offset = x - kernel_width / 2;
                 blur_store_pixel(
                     *output.borrow_mut(),
-                    offset,
-                    y,
-                    sum_r,
-                    sum_g,
-                    sum_b,
-                    sum_a,
+                    (offset, y),
+                    (sum_r, sum_g, sum_b, sum_a),
                     kernel_width,
                 );
             }
@@ -340,12 +328,8 @@ pub(crate) fn box_blur(
                 if offset < output.borrow().width {
                     blur_store_pixel(
                         *output.borrow_mut(),
-                        offset,
-                        y,
-                        sum_r,
-                        sum_g,
-                        sum_b,
-                        sum_a,
+                        (offset, y),
+                        (sum_r, sum_g, sum_b, sum_a),
                         kernel_width,
                     );
                 }
@@ -377,12 +361,8 @@ pub(crate) fn box_blur(
                 if offset < output.borrow().height {
                     blur_store_pixel(
                         *output.borrow_mut(),
-                        x,
-                        offset,
-                        sum_r,
-                        sum_g,
-                        sum_b,
-                        sum_a,
+                        (x, offset),
+                        (sum_r, sum_g, sum_b, sum_a),
                         kernel_height,
                     );
                 }
@@ -409,12 +389,8 @@ pub(crate) fn box_blur(
                 offset = y - kernel_height / 2;
                 blur_store_pixel(
                     *output.borrow_mut(),
-                    x,
-                    offset,
-                    sum_r,
-                    sum_g,
-                    sum_b,
-                    sum_a,
+                    (x, offset),
+                    (sum_r, sum_g, sum_b, sum_a),
                     kernel_height,
                 );
             }
@@ -433,12 +409,8 @@ pub(crate) fn box_blur(
                 if offset < output.borrow().height {
                     blur_store_pixel(
                         *output.borrow_mut(),
-                        x,
-                        offset,
-                        sum_r,
-                        sum_g,
-                        sum_b,
-                        sum_a,
+                        (x, offset),
+                        (sum_r, sum_g, sum_b, sum_a),
                         kernel_height,
                     );
                 }
@@ -678,7 +650,7 @@ pub fn blend_soft_light_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
             + temp)
             / 65025
     } else {
-        ((d * sa * 255 + da * (s2 - sa) * (f32::sqrt(d_np as f32 * 255.0) as u32) - d_np) + temp)
+        ((d * sa * 255 + da * (s2 - sa) * (f64::sqrt(d_np as f64 * 255.0) as u32) - d_np) + temp)
             / 65025
     }
 }
