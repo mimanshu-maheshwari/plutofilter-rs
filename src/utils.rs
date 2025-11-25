@@ -1,9 +1,27 @@
 use std::{cell::RefCell, f32::consts::PI, rc::Rc};
 
+// TODO: update r,g,b and a as u8 and unpack pointer destructure of u32 to [u8,4]
+
 use crate::Surface;
 #[allow(clippy::excessive_precision)]
 pub(crate) const KERNEL_FACTOR: f32 = 1.8799712059732503;
 pub(crate) const MAX_KERNEL_SIZE: usize = 512;
+
+/// Helper function to find file in res folder
+pub fn get_resource_path(dirs: &[&str], filename: &str) -> std::path::PathBuf {
+    let mut manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir = manifest_dir.join("res");
+    for &dir in dirs {
+        manifest_dir = manifest_dir.join(dir);
+    }
+    if !manifest_dir.exists() {
+        let _ = std::fs::create_dir_all(&manifest_dir).map_err(|err| {
+            eprint!("error while create_dir_all: {err}");
+        });
+    }
+
+    manifest_dir.join(filename)
+}
 
 #[inline(always)]
 pub(crate) fn alpha(pixel: &u32) -> u32 {
@@ -39,7 +57,7 @@ pub(crate) fn get_pixel_mut<'a>(surface: &'a mut Surface, x: usize, y: usize) ->
     surface
         .pixels
         .get_mut(y * surface.stride + x)
-        .expect("Invalid index while getting mutable pointer to pixel")
+        .expect("Invalid index while getting mutable reference to pixel")
 }
 
 #[inline(always)]
@@ -48,8 +66,9 @@ pub(crate) fn get_pixel<'a>(surface: &'a Surface, x: usize, y: usize) -> &'a u32
     surface
         .pixels
         .get(y * surface.stride + x)
-        .expect("Invalid index while getting pointer to pixel")
+        .expect("Invalid index while getting reference to pixel")
 }
+
 #[inline(always)]
 pub(crate) fn load_pixel(
     input: &mut Surface,
@@ -116,7 +135,6 @@ pub(crate) fn unpremultiply_pixel(r: &mut u32, g: &mut u32, b: &mut u32, a: &mut
         *r = 0;
         *g = 0;
         *b = 0;
-        *a = 0;
     }
 }
 #[inline(always)]
@@ -132,18 +150,18 @@ pub(crate) fn clamp(v: u32, lo: u32, hi: u32) -> u32 {
 
 #[inline(always)]
 pub(crate) fn clamp_pixel(pixel: u32) -> u32 {
-    clamp(pixel, 0, 255)
+    clamp(pixel, 0, 255) as u8 as u32
 }
 
 #[inline(always)]
 pub(crate) fn overlap_surface3(a: &mut Surface, b: &mut Surface, c: &mut Surface) {
     let mut _width = a.width;
     let mut _height = a.height;
-    if c.width < _width {
-        _width = c.width;
-    }
     if b.width < _width {
         _width = b.width;
+    }
+    if c.width < _width {
+        _width = c.width;
     }
     if b.height < _height {
         _height = b.height;
@@ -255,9 +273,11 @@ pub(crate) fn box_blur(
     let (mut sum_r, mut sum_g, mut sum_b, mut sum_a);
     let (mut r, mut g, mut b, mut a) = (0, 0, 0, 0);
 
+    let output_width = output.borrow().width;
+    let output_height = output.borrow().height;
     if kernel_width > 0 {
-        kernel_width = kernel_width.min(output.borrow().width);
-        for y in 0..output.borrow().height {
+        kernel_width = kernel_width.min(output_width);
+        for y in 0..output_height {
             sum_r = 0;
             sum_g = 0;
             sum_b = 0;
@@ -275,9 +295,10 @@ pub(crate) fn box_blur(
                 sum_b += b;
                 sum_a += a;
 
-                offset = x - kernel_width / 2;
+                // offset = x - kernel_width / 2;
+                offset = x.wrapping_sub(kernel_width.wrapping_div(2));
                 // if offset >= 0 && offset < output.borrow().width {
-                if offset < output.borrow().width {
+                if offset < output_width {
                     blur_store_pixel(
                         *output.borrow_mut(),
                         (offset, y),
@@ -287,7 +308,7 @@ pub(crate) fn box_blur(
                 }
             }
 
-            for x in kernel_width..output.borrow().width {
+            for x in kernel_width..output_width {
                 let index = x % kernel_width;
                 pixel = intermediate[index];
                 unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
@@ -314,7 +335,7 @@ pub(crate) fn box_blur(
                 );
             }
 
-            for x in output.borrow().width..(output.borrow().width + kernel_width) {
+            for x in output_width..(output_width + kernel_width) {
                 let index = x % kernel_width;
                 pixel = intermediate[index];
                 unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
@@ -326,7 +347,7 @@ pub(crate) fn box_blur(
 
                 offset = x - kernel_width / 2;
                 // if offset >= 0 && offset < output.borrow().width {
-                if offset < output.borrow().width {
+                if offset < output_width {
                     blur_store_pixel(
                         *output.borrow_mut(),
                         (offset, y),
@@ -339,8 +360,8 @@ pub(crate) fn box_blur(
     }
 
     if kernel_height > 0 {
-        kernel_height = kernel_height.min(output.borrow().height);
-        for x in 0..output.borrow().width {
+        kernel_height = kernel_height.min(output_height);
+        for x in 0..output_width {
             sum_r = 0;
             sum_g = 0;
             sum_b = 0;
@@ -357,9 +378,10 @@ pub(crate) fn box_blur(
                 sum_b += b;
                 sum_a += a;
 
-                offset = y - kernel_height / 2;
+                // offset = y - kernel_height / 2;
+                offset = y.wrapping_sub(kernel_height.wrapping_div(2));
                 // if offset >= 0 && offset < output.borrow().height {
-                if offset < output.borrow().height {
+                if offset < output_height {
                     blur_store_pixel(
                         *output.borrow_mut(),
                         (x, offset),
@@ -369,7 +391,7 @@ pub(crate) fn box_blur(
                 }
             }
 
-            for y in kernel_height..output.borrow().height {
+            for y in kernel_height..output_height {
                 let index = y % kernel_height;
                 pixel = intermediate[index];
                 unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
@@ -396,7 +418,7 @@ pub(crate) fn box_blur(
                 );
             }
 
-            for y in output.borrow().height..(output.borrow().height + kernel_height) {
+            for y in output_height..(output_height + kernel_height) {
                 pixel = intermediate[y % kernel_height];
                 unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
 
@@ -407,7 +429,7 @@ pub(crate) fn box_blur(
 
                 offset = y - kernel_height / 2;
                 // if offset >= 0 && offset < output.borrow().height {
-                if offset < output.borrow().height {
+                if offset < output_height {
                     blur_store_pixel(
                         *output.borrow_mut(),
                         (x, offset),
@@ -640,11 +662,26 @@ pub(crate) fn blend_hard_light(input1: &mut Surface, input2: &mut Surface, outpu
 
 pub fn blend_soft_light_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
     let s2 = s << 1;
-    let d_np = if da != 0 { (255 * d) / da } else { 0 };
-    let temp = (s * (255 - da) + d * (255 - sa)) * 255;
+    // let d_np = if da != 0 { (255 * d) / da } else { 0 };
+    let d_np = if da != 0 {
+        255u32.wrapping_mul(d).wrapping_div(da)
+    } else {
+        0
+    };
+    // let temp = (s * (255 - da) + d * (255 - sa)) * 255;
+    let temp = s
+        .wrapping_mul(255u32.wrapping_sub(da))
+        .wrapping_add(d.wrapping_mul(255u32.wrapping_sub(sa)))
+        .wrapping_mul(255);
 
     if s2 < sa {
-        (d * (sa * 255 + (s2 - sa) * (255 - d_np)) + temp) / 65025
+        // (d * (sa * 255 + (s2 - sa) * (255 - d_np)) + temp) / 65025
+        d.wrapping_mul(
+            sa.wrapping_mul(255)
+                .wrapping_add(s2.wrapping_sub(sa).wrapping_mul(255u32.wrapping_sub(d_np)))
+                .wrapping_add(temp),
+        )
+        .wrapping_div(65025)
     } else if 4 * d <= da {
         (d * sa * 255
             + da * (s2 - sa) * ((((16 * d_np - 12 * 255) * d_np + 3 * 65025) * d_np) / 65025)
@@ -713,7 +750,7 @@ pub(crate) fn blend_exclusion(input1: &mut Surface, input2: &mut Surface, output
 
 pub(crate) fn composite_over(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
-        for x in 0..out.height {
+        for x in 0..out.width {
             let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
             let (dr, dg, db, da) = init_load_pixel(in2, x, y);
 
@@ -731,7 +768,7 @@ pub(crate) fn composite_over(in1: &mut Surface, in2: &mut Surface, out: &mut Sur
 
 pub(crate) fn composite_in(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
-        for x in 0..out.height {
+        for x in 0..out.width {
             let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
 
             let da = alpha(get_pixel(in2, x, y));
@@ -748,7 +785,7 @@ pub(crate) fn composite_in(in1: &mut Surface, in2: &mut Surface, out: &mut Surfa
 
 pub(crate) fn composite_out(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
-        for x in 0..out.height {
+        for x in 0..out.width {
             let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
 
             let inv_da = 255 - alpha(get_pixel(in2, x, y));
@@ -765,7 +802,7 @@ pub(crate) fn composite_out(in1: &mut Surface, in2: &mut Surface, out: &mut Surf
 
 pub(crate) fn composite_atop(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
-        for x in 0..out.height {
+        for x in 0..out.width {
             let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
             let (dr, dg, db, da) = init_load_pixel(in2, x, y);
 
@@ -782,7 +819,7 @@ pub(crate) fn composite_atop(in1: &mut Surface, in2: &mut Surface, out: &mut Sur
 
 pub(crate) fn composite_xor(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
-        for x in 0..out.height {
+        for x in 0..out.width {
             let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
             let (dr, dg, db, da) = init_load_pixel(in2, x, y);
 

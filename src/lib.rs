@@ -6,6 +6,8 @@ mod error;
 // mod pixel;
 mod utils;
 
+pub use utils::get_resource_path;
+
 use std::{cell::RefCell, rc::Rc};
 
 #[cfg(feature = "image")]
@@ -98,9 +100,8 @@ impl<'a> Surface<'a> {
         let width = image.width() as usize;
         let height = image.height() as usize;
         let stride = image.width() as usize;
-        let mut image = image.clone().into_rgba8();
         let pixels = {
-            let raw_u8 = image.as_mut();
+            let raw_u8 = image.as_mut_rgba8().unwrap();
             let len = raw_u8.len() / 4;
             let ptr_u32 = raw_u8.as_ptr() as *mut u32;
             unsafe { std::slice::from_raw_parts_mut(ptr_u32, len) }
@@ -403,6 +404,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The sepia amount (0 for unchanged, 1 for fully sepia).
     ///
+    // FIXME: sepia not working properly
     pub fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
         let inv_amount = 1.0 - amount;
         let matrix = [
@@ -547,7 +549,7 @@ impl<'a> Surface<'a> {
     ///The input and output surfaces may refer to the same buffer.
     /// # Arguments
     /// * `input` - The input surface.
-    /// * `input` - The output surface.
+    /// * `output` - The output surface.
     /// * `std_deviation_x` - The standard deviation of the blur along the X axis.
     /// * `std_deviation_y` - The standard deviation of the blur along the Y axis.
     ///

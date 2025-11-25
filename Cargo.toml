@@ -13,16 +13,20 @@ keywords = ["image", "filter", "plutofilter", "rendering", "processing"]
 categories = ["rendering", "visualization", "multimedia::images"]
 exclude = ["/res/**"]
 
-[[example]]
-name = "load-image"
-path = "examples/load-image.rs"
-required-featuers = ["image"]
+# [[example]]
+# name = "load-image"
+# path = "examples/load-image.rs"
+# required-featuers = ["image"]
 
-
-[[test]]
-name = "blend-mode"
-path = "tests/blend-modes.rs"
-required-featuers = ["image"]
+# [[test]]
+# name = "gaussian-blur"
+# path = "tests/gaussian-blur.rs"
+# required-featuers = ["image"]
+#
+# [[test]]
+# name = "blend-mode"
+# path = "tests/blend-modes.rs"
+# required-featuers = ["image"]
 
 [features]
 default = ["image"]
