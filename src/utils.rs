@@ -127,7 +127,7 @@ pub(crate) fn premultiply_pixel(r: &mut u32, g: &mut u32, b: &mut u32, a: &mut u
 
 #[inline(always)]
 pub(crate) fn unpremultiply_pixel(r: &mut u32, g: &mut u32, b: &mut u32, a: &mut u32) {
-    if a != &0 {
+    if *a != 0 {
         *r = (255 * *r) / *a;
         *g = (255 * *g) / *a;
         *b = (255 * *b) / *a;

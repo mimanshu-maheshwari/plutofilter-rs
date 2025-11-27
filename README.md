@@ -6,6 +6,7 @@ PlutoFilter is a zero-allocation image filter library. A Rust port of the origin
 
 - [Gaussian Blur](#gaussian-blur)
 - [Color Transform](#color-transform)
+
   - [Grayscale](#grayscale)
   - [Sepia](#sepia)
   - [Saturate](#saturate)
@@ -16,6 +17,7 @@ PlutoFilter is a zero-allocation image filter library. A Rust port of the origin
   - [Hue Rotate](#hue-rotate)
 
 - [Blend](#blend)
+
   - [Normal](#blend-normal)
   - [Multiply](#blend-multiply)
   - [Screen](#blend-screen)
@@ -97,64 +99,64 @@ const float contrast[20] = {
 
 Applies a grayscale effect to the input surface, controlled by a blending `amount` between the original color and fully desaturated grayscale. A value of `0` preserves the original image, while `1` results in complete grayscale.
 
-| `0` | `0.25` | `0.5` | `0.75` | `1` |
-|-----|--------|-------|--------|-----|
+| `0`                                                           | `0.25`                                                        | `0.5`                                                         | `0.75`                                                        | `1`                                                           |
+| ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
 | ![](res/test_output_images/color_transform_grayscale/000.png) | ![](res/test_output_images/color_transform_grayscale/025.png) | ![](res/test_output_images/color_transform_grayscale/050.png) | ![](res/test_output_images/color_transform_grayscale/075.png) | ![](res/test_output_images/color_transform_grayscale/100.png) |
 
 ### Sepia
 
 Applies a sepia tone to the input surface, blending between the original image and a warm, brownish tone. The `amount` controls the intensity, where `0` leaves the image unchanged and `1` applies full sepia coloration.
 
-| `0` | `0.25` | `0.5` | `0.75` | `1` |
-|-----|--------|-------|--------|-----|
+| `0`                                                       | `0.25`                                                    | `0.5`                                                     | `0.75`                                                    | `1`                                                       |
+| --------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
 | ![](res/test_output_images/color_transform_sepia/000.png) | ![](res/test_output_images/color_transform_sepia/025.png) | ![](res/test_output_images/color_transform_sepia/050.png) | ![](res/test_output_images/color_transform_sepia/075.png) | ![](res/test_output_images/color_transform_sepia/100.png) |
 
 ### Saturate
 
 Adjusts the color saturation of the input surface. The `amount` controls how vivid or muted the colors become: `1` leaves the image unchanged, values less than `1` reduce saturation toward grayscale, and values greater than `1` enhance the intensity of colors.
 
-| `0` | `0.5` | `1` | `4` |
-|-----|-------|-----|-----|
+| `0`                                                          | `0.5`                                                        | `1`                                                          | `4`                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | ![](res/test_output_images/color_transform_saturate/000.png) | ![](res/test_output_images/color_transform_saturate/050.png) | ![](res/test_output_images/color_transform_saturate/100.png) | ![](res/test_output_images/color_transform_saturate/400.png) |
 
 ### Contrast
 
 Adjusts the contrast of the input surface. An `amount` of `1` leaves the image unchanged, values below `1` reduce contrast, and values above `1` increase it. The image is scaled around the midpoint of the color range.
 
-| `0` | `1` | `1.75` |
-|-----|-----|--------|
+| `0`                                                          | `1`                                                          | `1.75`                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | ![](res/test_output_images/color_transform_contrast/000.png) | ![](res/test_output_images/color_transform_contrast/100.png) | ![](res/test_output_images/color_transform_contrast/175.png) |
 
 ### Brightness
 
 Adjusts the brightness of the input surface. An `amount` of `1` preserves the original brightness, values below `1` darken the image, and values above `1` brighten it uniformly across all color channels.
 
-| `0` | `0.5` | `1` | `1.75` |
-|-----|-------|-----|--------|
+| `0`                                                            | `0.5`                                                          | `1`                                                            | `1.75`                                                         |
+| -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- |
 | ![](res/test_output_images/color_transform_brightness/000.png) | ![](res/test_output_images/color_transform_brightness/050.png) | ![](res/test_output_images/color_transform_brightness/100.png) | ![](res/test_output_images/color_transform_brightness/175.png) |
 
 ### Opacity
 
 Adjusts the opacity (alpha) of the input surface. An `amount` of `1` leaves opacity unchanged, while values between `0` and `1` scale the alpha channel linearly. A value of `0` makes the image fully transparent.
 
-| `0` | `0.25` | `0.5` | `0.75` | `1` |
-|-----|--------|-------|--------|-----|
+| `0`                                                         | `0.25`                                                      | `0.5`                                                       | `0.75`                                                      | `1`                                                         |
+| ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
 | ![](res/test_output_images/color_transform_opacity/000.png) | ![](res/test_output_images/color_transform_opacity/025.png) | ![](res/test_output_images/color_transform_opacity/050.png) | ![](res/test_output_images/color_transform_opacity/075.png) | ![](res/test_output_images/color_transform_opacity/100.png) |
 
 ### Invert
 
 Applies a color inversion effect to the input surface. The `amount` controls the strength of the inversion: `0` leaves the image unchanged, `1` fully inverts the RGB channels, and intermediate values blend between the original and inverted colors.
 
-| `0` | `0.25` | `0.5` | `0.75` | `1` |
-|-----|--------|-------|--------|-----|
+| `0`                                                        | `0.25`                                                     | `0.5`                                                      | `0.75`                                                     | `1`                                                        |
+| ---------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
 | ![](res/test_output_images/color_transform_invert/000.png) | ![](res/test_output_images/color_transform_invert/025.png) | ![](res/test_output_images/color_transform_invert/050.png) | ![](res/test_output_images/color_transform_invert/075.png) | ![](res/test_output_images/color_transform_invert/100.png) |
 
 ### Hue Rotate
 
 Rotates the hue of each pixel in the input surface by the given angle in degrees. The rotation is applied in the RGB color space, preserving luminance and alpha. A value of `0` leaves colors unchanged, while `360` completes a full rotation back to the original.
 
-| `0°` | `30°` | `90°` | `180°` | `270°` | `360°` |
-|------|-------|-------|--------|--------|--------|
+| `0°`                                                           | `30°`                                                          | `90°`                                                          | `180°`                                                         | `270°`                                                         | `360°`                                                         |
+| -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- |
 | ![](res/test_output_images/color_transform_hue_rotate/000.png) | ![](res/test_output_images/color_transform_hue_rotate/030.png) | ![](res/test_output_images/color_transform_hue_rotate/090.png) | ![](res/test_output_images/color_transform_hue_rotate/180.png) | ![](res/test_output_images/color_transform_hue_rotate/270.png) | ![](res/test_output_images/color_transform_hue_rotate/360.png) |
 
 ## Blend
@@ -265,6 +267,6 @@ Keeps the overlapping part of the source, but only where the backdrop is present
 
 Blends two input surfaces using a flexible arithmetic combination of their color values. The output is based on the colors from both inputs, combined according to the four constants: `k1`, `k2`, `k3`, and `k4`.
 
-| Test 1 | Test 2 | Test 3 | Test 4 |
-|--------|--------|--------|--------|
+| Test 1                                                      | Test 2                                                      | Test 3                                                      | Test 4                                                      |
+| ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
 | ![](res/test_output_images/composite_arithmatic/test_1.png) | ![](res/test_output_images/composite_arithmatic/test_2.png) | ![](res/test_output_images/composite_arithmatic/test_3.png) | ![](res/test_output_images/composite_arithmatic/test_4.png) |
