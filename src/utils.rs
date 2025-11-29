@@ -5,7 +5,7 @@ use std::{cell::RefCell, f32::consts::PI, rc::Rc};
 use crate::Surface;
 #[allow(clippy::excessive_precision)]
 pub(crate) const KERNEL_FACTOR: f32 = 1.8799712059732503;
-pub(crate) const MAX_KERNEL_SIZE: usize = 512;
+pub(crate) const MAX_KERNEL_SIZE: u32 = 512;
 
 /// Helper function to find file in res folder
 pub fn get_resource_path(dirs: &[&str], filename: &str) -> std::path::PathBuf {
@@ -43,62 +43,37 @@ pub(crate) fn blue(pixel: &u32) -> u32 {
     pixel & 0xFF
 }
 
+/// return r,g,b,a from a u32
 #[inline(always)]
-pub(crate) fn unpack_pixel(pixel: &u32, r: &mut u32, g: &mut u32, b: &mut u32, a: &mut u32) {
-    *r = red(pixel);
-    *g = green(pixel);
-    *b = blue(pixel);
-    *a = alpha(pixel);
+pub(crate) fn unpack_pixel(pixel: &u32) -> (u32, u32, u32, u32) {
+    (red(pixel), green(pixel), blue(pixel), alpha(pixel))
 }
 
 #[inline(always)]
-pub(crate) fn get_pixel_mut<'a>(surface: &'a mut Surface, x: usize, y: usize) -> &'a mut u32 {
+pub(crate) fn get_pixel_mut<'a>(surface: &'a mut Surface, x: u32, y: u32) -> &'a mut u32 {
     // let surface_stride = surface.stride;
-    surface
-        .pixels
-        .get_mut(y * surface.stride + x)
-        .expect("Invalid index while getting mutable reference to pixel")
+    &mut surface.pixels[(y * surface.stride + x) as usize]
+    // .get_mut(y * surface.stride + x)
+    // .expect("Invalid index while getting mutable reference to pixel")
 }
 
 #[inline(always)]
-pub(crate) fn get_pixel<'a>(surface: &'a Surface, x: usize, y: usize) -> &'a u32 {
+pub(crate) fn get_pixel<'a>(surface: &'a Surface, x: u32, y: u32) -> &'a u32 {
     // let surface_stride = surface.stride;
-    surface
-        .pixels
-        .get(y * surface.stride + x)
-        .expect("Invalid index while getting reference to pixel")
+    &surface.pixels[(y * surface.stride + x) as usize]
+    // .get(y * surface.stride + x)
+    // .expect("Invalid index while getting reference to pixel")
 }
 
 #[inline(always)]
-pub(crate) fn load_pixel(
-    input: &mut Surface,
-    x: usize,
-    y: usize,
-    r: &mut u32,
-    g: &mut u32,
-    b: &mut u32,
-    a: &mut u32,
-) {
+pub(crate) fn load_pixel(input: &mut Surface, x: u32, y: u32) -> (u32, u32, u32, u32) {
     let pixel = get_pixel(input, x, y);
-    unpack_pixel(pixel, r, g, b, a)
+    unpack_pixel(pixel)
 }
+
 #[inline(always)]
-pub(crate) fn init_load_pixel(
-    input: &mut Surface,
-    x: usize,
-    y: usize,
-    // r: &mut u32,
-    // g: &mut u32,
-    // b: &mut u32,
-    // a: &mut u32,
-) -> (u32, u32, u32, u32) {
-    let mut r = 0;
-    let mut g = 0;
-    let mut b = 0;
-    let mut a = 0;
-    load_pixel(input, x, y, &mut r, &mut g, &mut b, &mut a);
-    (r, g, b, a)
-    // load_pixel(input, x, y, r, g, b, a)
+pub(crate) fn init_load_pixel(input: &mut Surface, x: u32, y: u32) -> (u32, u32, u32, u32) {
+    load_pixel(input, x, y)
 }
 
 #[inline(always)]
@@ -106,15 +81,7 @@ pub(crate) fn pack_pixel(r: u32, g: u32, b: u32, a: u32) -> u32 {
     (a << 24) | (r << 16) | (g << 8) | (b)
 }
 #[inline(always)]
-pub(crate) fn store_pixel(
-    output: &mut Surface,
-    x: usize,
-    y: usize,
-    r: u32,
-    g: u32,
-    b: u32,
-    a: u32,
-) {
+pub(crate) fn store_pixel(output: &mut Surface, x: u32, y: u32, r: u32, g: u32, b: u32, a: u32) {
     *get_pixel_mut(output, x, y) = pack_pixel(r, g, b, a)
 }
 
@@ -137,20 +104,21 @@ pub(crate) fn unpremultiply_pixel(r: &mut u32, g: &mut u32, b: &mut u32, a: &mut
         *b = 0;
     }
 }
-#[inline(always)]
-pub(crate) fn clamp(v: u32, lo: u32, hi: u32) -> u32 {
-    if v < lo {
-        lo
-    } else if v > hi {
-        hi
-    } else {
-        v
-    }
-}
+
+// #[inline(always)]
+// pub(crate) fn clamp(v: u32, lo: u32, hi: u32) -> u32 {
+//     if v < lo {
+//         lo
+//     } else if v > hi {
+//         hi
+//     } else {
+//         v
+//     }
+// }
 
 #[inline(always)]
 pub(crate) fn clamp_pixel(pixel: u32) -> u32 {
-    clamp(pixel, 0, 255) as u8 as u32
+    pixel.clamp(0, 255) as u8 as u32
 }
 
 #[inline(always)]
@@ -250,28 +218,26 @@ const LINEAR_RGB_TO_SRGB_TABLE: [u32;256] = [
 
 pub(crate) fn blur_store_pixel(
     output: &mut Surface,
-    (x, y): (usize, usize),
+    (x, y): (u32, u32),
     (r, g, b, a): (u32, u32, u32, u32),
-    k: usize,
+    k: u32,
 ) {
-    let k = k as u32;
     store_pixel(output, x, y, r / k, g / k, b / k, a / k);
 }
 
-pub(crate) fn calc_kernel_size(std_deviation: f32) -> i32 {
-    f32::floor(std_deviation * KERNEL_FACTOR + 0.5) as i32
+pub(crate) fn calc_kernel_size(std_deviation: f32) -> u32 {
+    f32::floor(std_deviation * KERNEL_FACTOR + 0.5) as u32
 }
 
 pub(crate) fn box_blur(
     input: Rc<RefCell<&mut Surface>>,
     output: Rc<RefCell<&mut Surface>>,
     intermediate: &mut [u32],
-    mut kernel_width: usize,
-    mut kernel_height: usize,
+    mut kernel_width: u32,
+    mut kernel_height: u32,
 ) {
     let (mut offset, mut pixel);
     let (mut sum_r, mut sum_g, mut sum_b, mut sum_a);
-    let (mut r, mut g, mut b, mut a) = (0, 0, 0, 0);
 
     let output_width = output.borrow().width;
     let output_height = output.borrow().height;
@@ -284,11 +250,11 @@ pub(crate) fn box_blur(
             sum_a = 0;
 
             for x in 0..kernel_width {
-                let index = x % kernel_width;
+                let index = (x % kernel_width) as usize;
 
                 intermediate[index] = *get_pixel(*input.borrow_mut(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -309,9 +275,9 @@ pub(crate) fn box_blur(
             }
 
             for x in kernel_width..output_width {
-                let index = x % kernel_width;
+                let index = (x % kernel_width) as usize;
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -319,7 +285,7 @@ pub(crate) fn box_blur(
                 sum_a -= a;
                 intermediate[index] = *get_pixel(*input.borrow(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -336,9 +302,9 @@ pub(crate) fn box_blur(
             }
 
             for x in output_width..(output_width + kernel_width) {
-                let index = x % kernel_width;
+                let index = (x % kernel_width) as usize;
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -368,10 +334,10 @@ pub(crate) fn box_blur(
             sum_a = 0;
 
             for y in 0..kernel_height {
-                let index = y % kernel_height;
+                let index = (y % kernel_height) as usize;
                 intermediate[index] = *get_pixel(*input.borrow(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -392,9 +358,9 @@ pub(crate) fn box_blur(
             }
 
             for y in kernel_height..output_height {
-                let index = y % kernel_height;
+                let index = (y % kernel_height) as usize;
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -402,7 +368,7 @@ pub(crate) fn box_blur(
                 sum_a -= a;
                 intermediate[index] = *get_pixel(*input.borrow(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -419,8 +385,8 @@ pub(crate) fn box_blur(
             }
 
             for y in output_height..(output_height + kernel_height) {
-                pixel = intermediate[y % kernel_height];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                pixel = intermediate[(y % kernel_height) as usize];
+                let (r, g, b, a) = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -445,8 +411,8 @@ pub(crate) fn box_blur(
 #[inline(always)]
 pub(crate) fn clamp_and_store_pixel(
     output: &mut Surface,
-    x: usize,
-    y: usize,
+    x: u32,
+    y: u32,
     r: u32,
     g: u32,
     b: u32,
