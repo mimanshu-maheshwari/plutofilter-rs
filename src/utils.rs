@@ -1,11 +1,9 @@
 use std::{cell::RefCell, f32::consts::PI, rc::Rc};
 
-// TODO: update r,g,b and a as u8 and unpack pointer destructure of u32 to [u8,4]
-
 use crate::Surface;
 #[allow(clippy::excessive_precision)]
 pub(crate) const KERNEL_FACTOR: f32 = 1.8799712059732503;
-pub(crate) const MAX_KERNEL_SIZE: usize = 512;
+pub(crate) const MAX_KERNEL_SIZE: u32 = 512;
 
 /// Helper function to find file in res folder
 pub fn get_resource_path(dirs: &[&str], filename: &str) -> std::path::PathBuf {
@@ -25,96 +23,75 @@ pub fn get_resource_path(dirs: &[&str], filename: &str) -> std::path::PathBuf {
 
 #[inline(always)]
 pub(crate) fn alpha(pixel: &u32) -> u32 {
-    ((pixel) >> 24) & 0xFF
+    unpack_pixel(pixel)[3]
+    // pixel & 0xFF
+}
+
+// #[inline(always)]
+// pub(crate) fn alpha(pixel: &u32) -> u32 {
+//     ((pixel) >> 24) & 0xFF
+// }
+//
+// #[inline(always)]
+// pub(crate) fn red(pixel: &u32) -> u32 {
+//     ((pixel) >> 16) & 0xFF
+// }
+//
+// #[inline(always)]
+// pub(crate) fn green(pixel: &u32) -> u32 {
+//     ((pixel) >> 8) & 0xFF
+// }
+//
+// #[inline(always)]
+// pub(crate) fn blue(pixel: &u32) -> u32 {
+//     pixel & 0xFF
+// }
+
+/// return r,g,b,a from a u32
+#[inline(always)]
+pub(crate) fn unpack_pixel(pixel: &u32) -> [u32; 4] {
+    let [r, g, b, a] = pixel.to_le_bytes();
+    [r as u32, g as u32, b as u32, a as u32]
 }
 
 #[inline(always)]
-pub(crate) fn red(pixel: &u32) -> u32 {
-    ((pixel) >> 16) & 0xFF
-}
-
-#[inline(always)]
-pub(crate) fn green(pixel: &u32) -> u32 {
-    ((pixel) >> 8) & 0xFF
-}
-
-#[inline(always)]
-pub(crate) fn blue(pixel: &u32) -> u32 {
-    pixel & 0xFF
-}
-
-#[inline(always)]
-pub(crate) fn unpack_pixel(pixel: &u32, r: &mut u32, g: &mut u32, b: &mut u32, a: &mut u32) {
-    *r = red(pixel);
-    *g = green(pixel);
-    *b = blue(pixel);
-    *a = alpha(pixel);
-}
-
-#[inline(always)]
-pub(crate) fn get_pixel_mut<'a>(surface: &'a mut Surface, x: usize, y: usize) -> &'a mut u32 {
+pub(crate) fn get_pixel_mut<'a>(surface: &'a mut Surface, x: u32, y: u32) -> &'a mut u32 {
     // let surface_stride = surface.stride;
-    surface
-        .pixels
-        .get_mut(y * surface.stride + x)
-        .expect("Invalid index while getting mutable reference to pixel")
+    &mut surface.pixels[(y * surface.stride + x) as usize]
+    // .get_mut(y * surface.stride + x)
+    // .expect("Invalid index while getting mutable reference to pixel")
 }
 
 #[inline(always)]
-pub(crate) fn get_pixel<'a>(surface: &'a Surface, x: usize, y: usize) -> &'a u32 {
+pub(crate) fn get_pixel<'a>(surface: &'a Surface, x: u32, y: u32) -> &'a u32 {
     // let surface_stride = surface.stride;
-    surface
-        .pixels
-        .get(y * surface.stride + x)
-        .expect("Invalid index while getting reference to pixel")
+    &surface.pixels[(y * surface.stride + x) as usize]
+    // .get(y * surface.stride + x)
+    // .expect("Invalid index while getting reference to pixel")
 }
 
 #[inline(always)]
-pub(crate) fn load_pixel(
-    input: &mut Surface,
-    x: usize,
-    y: usize,
-    r: &mut u32,
-    g: &mut u32,
-    b: &mut u32,
-    a: &mut u32,
-) {
+pub(crate) fn load_pixel(input: &mut Surface, x: u32, y: u32) -> [u32; 4] {
     let pixel = get_pixel(input, x, y);
-    unpack_pixel(pixel, r, g, b, a)
-}
-#[inline(always)]
-pub(crate) fn init_load_pixel(
-    input: &mut Surface,
-    x: usize,
-    y: usize,
-    // r: &mut u32,
-    // g: &mut u32,
-    // b: &mut u32,
-    // a: &mut u32,
-) -> (u32, u32, u32, u32) {
-    let mut r = 0;
-    let mut g = 0;
-    let mut b = 0;
-    let mut a = 0;
-    load_pixel(input, x, y, &mut r, &mut g, &mut b, &mut a);
-    (r, g, b, a)
-    // load_pixel(input, x, y, r, g, b, a)
+    unpack_pixel(pixel)
 }
 
+#[inline(always)]
+pub(crate) fn init_load_pixel(input: &mut Surface, x: u32, y: u32) -> [u32; 4] {
+    load_pixel(input, x, y)
+}
 #[inline(always)]
 pub(crate) fn pack_pixel(r: u32, g: u32, b: u32, a: u32) -> u32 {
-    (a << 24) | (r << 16) | (g << 8) | (b)
+    u32::from_le_bytes([r as u8, g as u8, b as u8, a as u8])
+    // (r << 24) | (g << 16) | (b << 8) | (a)
 }
+
+// #[inline(always)]
+// pub(crate) fn pack_pixel(r: u32, g: u32, b: u32, a: u32) -> u32 {
+//     (a << 24) | (r << 16) | (g << 8) | (b)
+// }
 #[inline(always)]
-pub(crate) fn store_pixel(
-    output: &mut Surface,
-    x: usize,
-    y: usize,
-    r: u32,
-    g: u32,
-    b: u32,
-    a: u32,
-) {
+pub(crate) fn store_pixel(output: &mut Surface, x: u32, y: u32, r: u32, g: u32, b: u32, a: u32) {
     *get_pixel_mut(output, x, y) = pack_pixel(r, g, b, a)
 }
 
@@ -137,20 +114,21 @@ pub(crate) fn unpremultiply_pixel(r: &mut u32, g: &mut u32, b: &mut u32, a: &mut
         *b = 0;
     }
 }
-#[inline(always)]
-pub(crate) fn clamp(v: u32, lo: u32, hi: u32) -> u32 {
-    if v < lo {
-        lo
-    } else if v > hi {
-        hi
-    } else {
-        v
-    }
-}
+
+// #[inline(always)]
+// pub(crate) fn clamp(v: u32, lo: u32, hi: u32) -> u32 {
+//     if v < lo {
+//         lo
+//     } else if v > hi {
+//         hi
+//     } else {
+//         v
+//     }
+// }
 
 #[inline(always)]
 pub(crate) fn clamp_pixel(pixel: u32) -> u32 {
-    clamp(pixel, 0, 255) as u8 as u32
+    pixel.clamp(0, 255) as u8 as u32
 }
 
 #[inline(always)]
@@ -250,28 +228,26 @@ const LINEAR_RGB_TO_SRGB_TABLE: [u32;256] = [
 
 pub(crate) fn blur_store_pixel(
     output: &mut Surface,
-    (x, y): (usize, usize),
+    (x, y): (u32, u32),
     (r, g, b, a): (u32, u32, u32, u32),
-    k: usize,
+    k: u32,
 ) {
-    let k = k as u32;
     store_pixel(output, x, y, r / k, g / k, b / k, a / k);
 }
 
-pub(crate) fn calc_kernel_size(std_deviation: f32) -> i32 {
-    f32::floor(std_deviation * KERNEL_FACTOR + 0.5) as i32
+pub(crate) fn calc_kernel_size(std_deviation: f32) -> u32 {
+    f32::floor(std_deviation * KERNEL_FACTOR + 0.5) as u32
 }
 
 pub(crate) fn box_blur(
     input: Rc<RefCell<&mut Surface>>,
     output: Rc<RefCell<&mut Surface>>,
     intermediate: &mut [u32],
-    mut kernel_width: usize,
-    mut kernel_height: usize,
+    mut kernel_width: u32,
+    mut kernel_height: u32,
 ) {
     let (mut offset, mut pixel);
     let (mut sum_r, mut sum_g, mut sum_b, mut sum_a);
-    let (mut r, mut g, mut b, mut a) = (0, 0, 0, 0);
 
     let output_width = output.borrow().width;
     let output_height = output.borrow().height;
@@ -284,11 +260,11 @@ pub(crate) fn box_blur(
             sum_a = 0;
 
             for x in 0..kernel_width {
-                let index = x % kernel_width;
+                let index = (x % kernel_width) as usize;
 
                 intermediate[index] = *get_pixel(*input.borrow_mut(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -309,9 +285,9 @@ pub(crate) fn box_blur(
             }
 
             for x in kernel_width..output_width {
-                let index = x % kernel_width;
+                let index = (x % kernel_width) as usize;
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -319,7 +295,7 @@ pub(crate) fn box_blur(
                 sum_a -= a;
                 intermediate[index] = *get_pixel(*input.borrow(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -336,9 +312,9 @@ pub(crate) fn box_blur(
             }
 
             for x in output_width..(output_width + kernel_width) {
-                let index = x % kernel_width;
+                let index = (x % kernel_width) as usize;
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -368,10 +344,10 @@ pub(crate) fn box_blur(
             sum_a = 0;
 
             for y in 0..kernel_height {
-                let index = y % kernel_height;
+                let index = (y % kernel_height) as usize;
                 intermediate[index] = *get_pixel(*input.borrow(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -392,9 +368,9 @@ pub(crate) fn box_blur(
             }
 
             for y in kernel_height..output_height {
-                let index = y % kernel_height;
+                let index = (y % kernel_height) as usize;
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -402,7 +378,7 @@ pub(crate) fn box_blur(
                 sum_a -= a;
                 intermediate[index] = *get_pixel(*input.borrow(), x, y);
                 pixel = intermediate[index];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r += r;
                 sum_g += g;
@@ -419,8 +395,8 @@ pub(crate) fn box_blur(
             }
 
             for y in output_height..(output_height + kernel_height) {
-                pixel = intermediate[y % kernel_height];
-                unpack_pixel(&pixel, &mut r, &mut g, &mut b, &mut a);
+                pixel = intermediate[(y % kernel_height) as usize];
+                let [r, g, b, a] = unpack_pixel(&pixel);
 
                 sum_r -= r;
                 sum_g -= g;
@@ -445,8 +421,8 @@ pub(crate) fn box_blur(
 #[inline(always)]
 pub(crate) fn clamp_and_store_pixel(
     output: &mut Surface,
-    x: usize,
-    y: usize,
+    x: u32,
+    y: u32,
     r: u32,
     g: u32,
     b: u32,
@@ -471,8 +447,8 @@ pub fn blend_normal_op(s: u32, d: u32, sa: u32, _da: u32) -> u32 {
 pub(crate) fn blend_normal(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_normal_op(sr, dr, sa, da);
             let g = blend_normal_op(sg, dg, sa, da);
             let b = blend_normal_op(sb, db, sa, da);
@@ -489,8 +465,8 @@ pub fn blend_multiply_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_multiply(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_multiply_op(sr, dr, sa, da);
             let g = blend_multiply_op(sg, dg, sa, da);
             let b = blend_multiply_op(sb, db, sa, da);
@@ -507,8 +483,8 @@ pub fn blend_screen_op(s: u32, d: u32, _sa: u32, _da: u32) -> u32 {
 pub(crate) fn blend_screen(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_screen_op(sr, dr, sa, da);
             let g = blend_screen_op(sg, dg, sa, da);
             let b = blend_screen_op(sb, db, sa, da);
@@ -530,8 +506,8 @@ pub fn blend_overlay_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_overlay(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_overlay_op(sr, dr, sa, da);
             let g = blend_overlay_op(sg, dg, sa, da);
             let b = blend_overlay_op(sb, db, sa, da);
@@ -553,8 +529,8 @@ pub fn blend_darken_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_darken(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_darken_op(sr, dr, sa, da);
             let g = blend_darken_op(sg, dg, sa, da);
             let b = blend_darken_op(sb, db, sa, da);
@@ -577,8 +553,8 @@ pub fn blend_lighten_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_lighten(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_lighten_op(sr, dr, sa, da);
             let g = blend_lighten_op(sg, dg, sa, da);
             let b = blend_lighten_op(sb, db, sa, da);
@@ -601,8 +577,8 @@ pub fn blend_color_dodge_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_color_dodge(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_color_dodge_op(sr, dr, sa, da);
             let g = blend_color_dodge_op(sg, dg, sa, da);
             let b = blend_color_dodge_op(sb, db, sa, da);
@@ -626,8 +602,8 @@ pub fn blend_color_burn_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_color_burn(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_color_burn_op(sr, dr, sa, da);
             let g = blend_color_burn_op(sg, dg, sa, da);
             let b = blend_color_burn_op(sb, db, sa, da);
@@ -649,8 +625,8 @@ pub fn blend_hard_light_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_hard_light(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_hard_light_op(sr, dr, sa, da);
             let g = blend_hard_light_op(sg, dg, sa, da);
             let b = blend_hard_light_op(sb, db, sa, da);
@@ -695,8 +671,8 @@ pub fn blend_soft_light_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_soft_light(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_soft_light_op(sr, dr, sa, da);
             let g = blend_soft_light_op(sg, dg, sa, da);
             let b = blend_soft_light_op(sb, db, sa, da);
@@ -719,8 +695,8 @@ pub fn blend_difference_op(s: u32, d: u32, sa: u32, da: u32) -> u32 {
 pub(crate) fn blend_difference(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_difference_op(sr, dr, sa, da);
             let g = blend_difference_op(sg, dg, sa, da);
             let b = blend_difference_op(sb, db, sa, da);
@@ -737,8 +713,8 @@ pub fn blend_exclusion_op(s: u32, d: u32, _sa: u32, _da: u32) -> u32 {
 pub(crate) fn blend_exclusion(input1: &mut Surface, input2: &mut Surface, output: &mut Surface) {
     for y in 0..output.height {
         for x in 0..output.width {
-            let (sr, sg, sb, sa) = init_load_pixel(input1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(input2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(input1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(input2, x, y);
             let r = blend_exclusion_op(sr, dr, sa, da);
             let g = blend_exclusion_op(sg, dg, sa, da);
             let b = blend_exclusion_op(sb, db, sa, da);
@@ -751,8 +727,8 @@ pub(crate) fn blend_exclusion(input1: &mut Surface, input2: &mut Surface, output
 pub(crate) fn composite_over(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
         for x in 0..out.width {
-            let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(in2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(in2, x, y);
 
             let inv_sa = 255 - sa;
 
@@ -769,7 +745,7 @@ pub(crate) fn composite_over(in1: &mut Surface, in2: &mut Surface, out: &mut Sur
 pub(crate) fn composite_in(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
         for x in 0..out.width {
-            let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
 
             let da = alpha(get_pixel(in2, x, y));
 
@@ -786,7 +762,7 @@ pub(crate) fn composite_in(in1: &mut Surface, in2: &mut Surface, out: &mut Surfa
 pub(crate) fn composite_out(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
         for x in 0..out.width {
-            let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
 
             let inv_da = 255 - alpha(get_pixel(in2, x, y));
 
@@ -803,8 +779,8 @@ pub(crate) fn composite_out(in1: &mut Surface, in2: &mut Surface, out: &mut Surf
 pub(crate) fn composite_atop(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
         for x in 0..out.width {
-            let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(in2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(in2, x, y);
 
             let inv_sa = 255 - sa;
 
@@ -820,8 +796,8 @@ pub(crate) fn composite_atop(in1: &mut Surface, in2: &mut Surface, out: &mut Sur
 pub(crate) fn composite_xor(in1: &mut Surface, in2: &mut Surface, out: &mut Surface) {
     for y in 0..out.height {
         for x in 0..out.width {
-            let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
-            let (dr, dg, db, da) = init_load_pixel(in2, x, y);
+            let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
+            let [dr, dg, db, da] = init_load_pixel(in2, x, y);
 
             let inv_sa = 255 - sa;
             let inv_da = 255 - da;

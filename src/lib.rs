@@ -8,6 +8,7 @@ mod utils;
 
 pub use utils::get_resource_path;
 
+use core::panic;
 use std::{cell::RefCell, rc::Rc};
 
 #[cfg(feature = "image")]
@@ -71,15 +72,15 @@ pub struct Surface<'a> {
     pub(crate) pixels: &'a mut [u32],
 
     /// The width of the surface in pixels.
-    pub(crate) width: usize,
+    pub(crate) width: u32,
 
     /// The height of the surface in pixels.
-    pub(crate) height: usize,
+    pub(crate) height: u32,
 
     /// The number of pixels per row.
     ///
     /// Must be greater than or equal to `width`.
-    pub(crate) stride: usize,
+    pub(crate) stride: u32,
 }
 
 impl<'a> Surface<'a> {
@@ -87,23 +88,29 @@ impl<'a> Surface<'a> {
         self.pixels
     }
 
-    pub fn width(&self) -> usize {
+    pub fn width(&self) -> u32 {
         self.width
     }
 
-    pub fn height(&self) -> usize {
+    pub fn height(&self) -> u32 {
         self.height
     }
 
     #[cfg(feature = "image")]
     pub fn from_image(image: &'a mut DynamicImage) -> Self {
-        let width = image.width() as usize;
-        let height = image.height() as usize;
-        let stride = image.width() as usize;
+        let width = image.width();
+        let height = image.height();
+        let stride = image.width();
+        // dbg!("[width: {}, height: {}]", width, height);
         let pixels = {
+            // SAFETY: The caller needs to convert the DynamicImage into a Rgba8Image
             let raw_u8 = image.as_mut_rgba8().unwrap();
+            // dbg!("length of rau_u8: {}", raw_u8.len());
             let len = raw_u8.len() / 4;
+            // dbg!("length of rau_u8/4: {}", len);
+            assert_eq!((width * height) as usize, len);
             let ptr_u32 = raw_u8.as_ptr() as *mut u32;
+            // SAFETY: Converting &[u8] to &[u32]
             unsafe { std::slice::from_raw_parts_mut(ptr_u32, len) }
         };
         Surface {
@@ -135,11 +142,11 @@ impl<'a> Surface<'a> {
     ///
     pub fn make(
         pixels: &'a mut [u32],
-        width: usize,
-        height: usize,
-        stride: usize,
+        width: u32,
+        height: u32,
+        stride: u32,
     ) -> Result<Self, SurfaceError> {
-        if pixels.len() < stride * height {
+        if pixels.len() < (stride * height) as usize {
             Err(SurfaceError::InvalidPixelLength)
         } else if stride < width {
             Err(SurfaceError::StrideLessThanWidth)
@@ -167,10 +174,10 @@ impl<'a> Surface<'a> {
     ///
     pub fn make_sub(
         &'a mut self,
-        mut x: usize,
-        mut y: usize,
-        mut width: usize,
-        mut height: usize,
+        mut x: u32,
+        mut y: u32,
+        mut width: u32,
+        mut height: u32,
     ) -> Result<Self, SurfaceError> {
         if x > self.width {
             x = self.width;
@@ -187,7 +194,7 @@ impl<'a> Surface<'a> {
         if y + height > self.height {
             height = self.height - y;
         }
-        let pixels = &mut (self.pixels[(y * self.stride + x)..]);
+        let pixels = &mut (self.pixels[((y * self.stride + x) as usize)..]);
         Self::make(pixels, width, height, self.stride)
     }
 
@@ -212,7 +219,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
                 let rr = r as f32 * matrix[0]
@@ -404,7 +411,6 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The sepia amount (0 for unchanged, 1 for fully sepia).
     ///
-    // FIXME: sepia not working properly
     pub fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
         let inv_amount = 1.0 - amount;
         let matrix = [
@@ -489,7 +495,7 @@ impl<'a> Surface<'a> {
 
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
                 let l = r as f32 * 0.2125 + g as f32 * 0.7154 + b as f32 * 0.0721;
@@ -511,7 +517,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
                 srgb_to_linear_rgb(&mut r, &mut g, &mut b);
                 premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
@@ -532,7 +538,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
                 liner_rgb_to_srgb(&mut r, &mut g, &mut b);
                 premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
@@ -559,24 +565,17 @@ impl<'a> Surface<'a> {
         std_deviation_x: f32,
         std_deviation_y: f32,
     ) {
+        if std_deviation_x < 0.0 || std_deviation_y < 0.0 {
+            panic!("standard deviation can not be less than zero.")
+        }
         overlap_surface(input, output);
-        let kernel_width = calc_kernel_size(std_deviation_x);
-        let kernel_height = calc_kernel_size(std_deviation_y);
-        if kernel_width <= 0 && kernel_height <= 0 {
-            let size = output.width * output.height;
-            for i in 0..size {
-                output.pixels[i] = input.pixels[i];
-            }
+        let mut kernel_width = calc_kernel_size(std_deviation_x);
+        let mut kernel_height = calc_kernel_size(std_deviation_y);
+
+        if kernel_width == 0 && kernel_height == 0 {
+            output.pixels.copy_from_slice(input.pixels);
             return;
         }
-
-        // should not panic as f32 values for standard deviations are positive
-        if kernel_height < 0 || kernel_width < 0 {
-            panic!("kernel_height={kernel_height}, kernel_width={kernel_width} ")
-        }
-
-        let mut kernel_width = kernel_width as usize;
-        let mut kernel_height = kernel_height as usize;
 
         if kernel_width > MAX_KERNEL_SIZE {
             kernel_width = MAX_KERNEL_SIZE;
@@ -585,7 +584,7 @@ impl<'a> Surface<'a> {
             kernel_height = MAX_KERNEL_SIZE;
         }
 
-        let mut intermediate = [0; MAX_KERNEL_SIZE];
+        let mut intermediate = [0; MAX_KERNEL_SIZE as usize];
 
         let output: Rc<RefCell<_>> = Rc::new(RefCell::new(output));
         let input: Rc<RefCell<_>> = Rc::new(RefCell::new(input));
@@ -693,8 +692,8 @@ impl<'a> Surface<'a> {
 
         for y in 0..out.height {
             for x in 0..out.width {
-                let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
-                let (dr, dg, db, da) = init_load_pixel(in2, x, y);
+                let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
+                let [dr, dg, db, da] = init_load_pixel(in2, x, y);
 
                 let (sr, sg, sb, sa) = (sr as f32, sg as f32, sb as f32, sa as f32);
                 let (dr, dg, db, da) = (dr as f32, dg as f32, db as f32, da as f32);
