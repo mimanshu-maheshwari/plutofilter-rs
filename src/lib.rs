@@ -101,10 +101,14 @@ impl<'a> Surface<'a> {
         let width = image.width();
         let height = image.height();
         let stride = image.width();
+        // dbg!("[width: {}, height: {}]", width, height);
         let pixels = {
             // SAFETY: The caller needs to convert the DynamicImage into a Rgba8Image
             let raw_u8 = image.as_mut_rgba8().unwrap();
+            // dbg!("length of rau_u8: {}", raw_u8.len());
             let len = raw_u8.len() / 4;
+            // dbg!("length of rau_u8/4: {}", len);
+            assert_eq!((width * height) as usize, len);
             let ptr_u32 = raw_u8.as_ptr() as *mut u32;
             // SAFETY: Converting &[u8] to &[u32]
             unsafe { std::slice::from_raw_parts_mut(ptr_u32, len) }
@@ -215,7 +219,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
                 let rr = r as f32 * matrix[0]
@@ -407,7 +411,6 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The sepia amount (0 for unchanged, 1 for fully sepia).
     ///
-    // FIXME: sepia not working properly
     pub fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
         let inv_amount = 1.0 - amount;
         let matrix = [
@@ -492,7 +495,7 @@ impl<'a> Surface<'a> {
 
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
                 let l = r as f32 * 0.2125 + g as f32 * 0.7154 + b as f32 * 0.0721;
@@ -514,7 +517,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
                 srgb_to_linear_rgb(&mut r, &mut g, &mut b);
                 premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
@@ -535,7 +538,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let (mut r, mut g, mut b, mut a) = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
                 liner_rgb_to_srgb(&mut r, &mut g, &mut b);
                 premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
@@ -689,8 +692,8 @@ impl<'a> Surface<'a> {
 
         for y in 0..out.height {
             for x in 0..out.width {
-                let (sr, sg, sb, sa) = init_load_pixel(in1, x, y);
-                let (dr, dg, db, da) = init_load_pixel(in2, x, y);
+                let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
+                let [dr, dg, db, da] = init_load_pixel(in2, x, y);
 
                 let (sr, sg, sb, sa) = (sr as f32, sg as f32, sb as f32, sa as f32);
                 let (dr, dg, db, da) = (dr as f32, dg as f32, db as f32, da as f32);
