@@ -2,6 +2,16 @@
 
 PlutoFilter is a zero-allocation image filter library. A Rust port of the original C library that applies fast, chainable image effects without any dynamic memory allocation. Compatible with SVG and CSS filter semantics, it makes it easy to reproduce visual effects consistently across platforms.
 
+## Notice
+- This is a personal project to learn rust and in no way production ready yet.
+
+### Whats next
+- Have a better interface to interact with API. (Design pattern like Builder)
+- Introduce examples
+- Implement bench marks
+- Implement SIMD for same operations. (I'm learning to do that)
+- Have a small TUI, using which you can just add the image; using a few sliders or something more suitable implement changes.
+
 ## Features
 
 - [Gaussian Blur](#gaussian-blur)
