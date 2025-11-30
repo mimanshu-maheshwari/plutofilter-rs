@@ -1,11 +1,10 @@
+use crate::Surface;
 use std::{cell::RefCell, f32::consts::PI, rc::Rc};
 
-use crate::Surface;
 #[allow(clippy::excessive_precision)]
-pub(crate) const KERNEL_FACTOR: f32 = 1.8799712059732503;
-pub(crate) const MAX_KERNEL_SIZE: u32 = 512;
+const KERNEL_FACTOR: f32 = 1.8799712059732503;
 
-/// Helper function to find file in res folder
+/// Helper function to find file in `res` folder in root directory
 pub fn get_resource_path(dirs: &[&str], filename: &str) -> std::path::PathBuf {
     let mut manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     manifest_dir = manifest_dir.join("res");
@@ -24,28 +23,7 @@ pub fn get_resource_path(dirs: &[&str], filename: &str) -> std::path::PathBuf {
 #[inline(always)]
 pub(crate) fn alpha(pixel: &u32) -> u32 {
     unpack_pixel(pixel)[3]
-    // pixel & 0xFF
 }
-
-// #[inline(always)]
-// pub(crate) fn alpha(pixel: &u32) -> u32 {
-//     ((pixel) >> 24) & 0xFF
-// }
-//
-// #[inline(always)]
-// pub(crate) fn red(pixel: &u32) -> u32 {
-//     ((pixel) >> 16) & 0xFF
-// }
-//
-// #[inline(always)]
-// pub(crate) fn green(pixel: &u32) -> u32 {
-//     ((pixel) >> 8) & 0xFF
-// }
-//
-// #[inline(always)]
-// pub(crate) fn blue(pixel: &u32) -> u32 {
-//     pixel & 0xFF
-// }
 
 /// return r,g,b,a from a u32
 #[inline(always)]

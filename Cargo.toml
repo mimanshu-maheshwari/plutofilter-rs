@@ -28,12 +28,12 @@ exclude = ["/res/**"]
 # path = "tests/blend-modes.rs"
 # required-featuers = ["image"]
 
-[features]
-default = ["image"]
-image = ["dep:image"]
+# [features]
+# default = ["image"]
+# image = ["dep:image"]
 
 [dependencies]
-image = { version = "0.25.8", optional = true }
+image = { version = "0.25.8" } #, optional = true }
 
 # optimizations
 [profile.dev]

@@ -1,5 +1,4 @@
 #[cfg(test)]
-#[cfg(feature = "image")]
 mod color_transform_test {
     use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader};
     use plutofilter_rs::*;
