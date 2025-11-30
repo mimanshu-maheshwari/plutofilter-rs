@@ -1,20 +1,13 @@
-use image::{DynamicImage, ImageReader};
-use plutofilter_rs::*;
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+use image::ImageResult;
+use plutofilter_rs::{ImageEditor, get_resource_path};
 
-fn main() -> Result<()> {
-    let base_file = get_resource_path(&["original_images"], "rgb-test.png");
-
-    let mut base_image = DynamicImage::ImageRgba8(
-        ImageReader::open(&base_file)
-            .map_err(|e| {
-                println!("{base_file:?} not found, {e}");
-                e
-            })?
-            .decode()?
-            .into_rgba8(),
-    );
-    let _base_image_surface = Surface::from_image(&mut base_image);
-
-    Ok(())
+fn main() -> ImageResult<()> {
+    let base_file = get_resource_path(&["original_images"], "test-image.jpg");
+    let editor = ImageEditor::open(&base_file);
+    let output_path = get_resource_path(&["test_output_images", "example"], "test-image.jpg");
+    editor
+        .color_transform_contrast_inplace(0.97)
+        .color_transform_hue_rotate_inplace(330.0)
+        .color_transform_saturate_inplace(1.11)
+        .save_to(&output_path)
 }
