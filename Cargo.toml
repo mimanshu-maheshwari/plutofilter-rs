@@ -1,6 +1,6 @@
 [package]
 name = "plutofilter-rs"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 authors = ["Mimanshu Maheshwari <maheshwarimimanshu@gmail.com>"]
 description = "Port of https://github.com/sammycage/plutofilter to rust"
@@ -28,12 +28,12 @@ exclude = ["/res/**"]
 # path = "tests/blend-modes.rs"
 # required-featuers = ["image"]
 
-[features]
-default = ["image"]
-image = ["dep:image"]
+# [features]
+# default = ["image"]
+# image = ["dep:image"]
 
 [dependencies]
-image = { version = "0.25.8", optional = true }
+image = { version = "0.25.8" } #, optional = true }
 
 # optimizations
 [profile.dev]
