@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(feature = "image")]
 mod color_transform_opacity_test {
     use plutofilter_rs::{ImageEditor, get_resource_path};
 

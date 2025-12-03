@@ -47,6 +47,13 @@ pub enum CompositeOperator {
     Xor,
 }
 
+/// Primary use is to deserialize the u32 pixel into sub pixel as ARGB32 or RGBA32
+#[derive(Debug, Clone, Copy)]
+pub enum ColorChannel {
+    ARGB32,
+    RGBA32,
+}
+
 // OLD(Represents a 2D image surface in ARGB32 premultiplied format.)
 /// Represents a 2D image surface in RGBA32 premultiplied format.
 /// These pixels are unpacked as:
@@ -73,6 +80,10 @@ pub struct Surface<'a> {
     ///
     /// Must be greater than or equal to `width`.
     pub(crate) stride: u32,
+
+    /// Sets the color channel as `ARGB` or `RGBA`
+    /// as image crate reads as RGBA channel and other cases use ARGB channel
+    pub(crate) channel: ColorChannel,
 }
 
 impl<'a> Surface<'a> {
@@ -88,6 +99,7 @@ impl<'a> Surface<'a> {
         self.height
     }
 
+    #[cfg(feature = "image")]
     pub fn from_image(image: &'a mut DynamicImage) -> Self {
         let width = image.width();
         let height = image.height();
@@ -109,6 +121,7 @@ impl<'a> Surface<'a> {
             width,
             height,
             stride,
+            channel: ColorChannel::RGBA32,
         }
     }
 
@@ -126,12 +139,13 @@ impl<'a> Surface<'a> {
     ///
     /// # Example
     /// ```
-    /// use plutofilter_rs::Surface;
+    /// use plutofilter_rs::{Surface, ColorChannel};
     /// let stride  = 320;
     /// let width   = 300;
     /// let height  = 280;
     /// let mut pixels  = vec![0; 320 * 280];
-    /// let surface = Surface::make(&mut pixels, width, height, stride).expect("ERROR: Failed to make surface struct.");
+    /// let channel = ColorChannel::ARGB32;
+    /// let surface = Surface::make(&mut pixels, width, height, stride, Some(channel)).expect("ERROR: Failed to make surface struct.");
     /// ```
     ///
     pub fn make(
@@ -139,6 +153,7 @@ impl<'a> Surface<'a> {
         width: u32,
         height: u32,
         stride: u32,
+        channel: Option<ColorChannel>,
     ) -> Result<Self, SurfaceError> {
         if pixels.len() < (stride * height) as usize {
             Err(SurfaceError::InvalidPixelLength)
@@ -150,6 +165,7 @@ impl<'a> Surface<'a> {
                 width,
                 height,
                 stride,
+                channel: channel.unwrap_or(ColorChannel::ARGB32),
             })
         }
     }
@@ -189,7 +205,7 @@ impl<'a> Surface<'a> {
             height = self.height - y;
         }
         let pixels = &mut (self.pixels[((y * self.stride + x) as usize)..]);
-        Self::make(pixels, width, height, self.stride)
+        Self::make(pixels, width, height, self.stride, Some(self.channel))
     }
 
     // ----------------------------------------------------
@@ -217,7 +233,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y, input.channel);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
                 let rr = r as f32 * matrix[0]
@@ -493,7 +509,7 @@ impl<'a> Surface<'a> {
 
         for y in 0..output.height {
             for x in 0..output.width {
-                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y, input.channel);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
 
                 let l = r as f32 * 0.2125 + g as f32 * 0.7154 + b as f32 * 0.0721;
@@ -515,7 +531,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y, input.channel);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
                 srgb_to_linear_rgb(&mut r, &mut g, &mut b);
                 premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
@@ -536,7 +552,7 @@ impl<'a> Surface<'a> {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
-                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y);
+                let [mut r, mut g, mut b, mut a] = init_load_pixel(input, x, y, input.channel);
                 unpremultiply_pixel(&mut r, &mut g, &mut b, &mut a);
                 liner_rgb_to_srgb(&mut r, &mut g, &mut b);
                 premultiply_pixel(&mut r, &mut g, &mut b, &mut a);
@@ -690,8 +706,8 @@ impl<'a> Surface<'a> {
 
         for y in 0..out.height {
             for x in 0..out.width {
-                let [sr, sg, sb, sa] = init_load_pixel(in1, x, y);
-                let [dr, dg, db, da] = init_load_pixel(in2, x, y);
+                let [sr, sg, sb, sa] = init_load_pixel(in1, x, y, in1.channel);
+                let [dr, dg, db, da] = init_load_pixel(in2, x, y, in2.channel);
 
                 let (sr, sg, sb, sa) = (sr as f32, sg as f32, sb as f32, sa as f32);
                 let (dr, dg, db, da) = (dr as f32, dg as f32, db as f32, da as f32);

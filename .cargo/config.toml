@@ -1,12 +1,24 @@
 [alias]
-b = "build"
-r = "run"
-# t = "test --features image"
 t = "test"
-c = "check"
+tf = "test --features image"
+tr = "test --release"
+trf = "test --release --features image"
+
+b = "build"
+bf = "build --features image"
 br = "build --release"
+brf = "build --release --features image"
+
+r = "run"
+rf = "run --features image"
 rr = "run --release"
+rrf = "run --release --features image"
+
+c = "check"
+cf = "check --features image"
 cr = "check --release"
+crf = "check --release --features image"
+
 d = "doc"
 rm = "remove"
 e_load_image = "run --example load-image"

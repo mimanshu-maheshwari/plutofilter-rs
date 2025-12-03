@@ -1,14 +1,19 @@
 //! PlutoFilter implementation
 
 // TODO: input output issue ?
+// TODO: inplace functions are incorrect. Maybe push inplace code to surface level??
 
 mod error;
 mod surface;
 mod utils;
+#[cfg(feature = "image")]
 pub use arena::ImageEditor;
-pub use surface::{BlendMode, CompositeOperator, Surface};
+pub use error::SurfaceError;
+pub use surface::{BlendMode, ColorChannel, CompositeOperator, Surface};
 pub use utils::get_resource_path;
 
+/// `arena` provides API using image crate to expose easy to use methods for surface API
+#[cfg(feature = "image")]
 pub mod arena {
     use std::{
         panic,
@@ -19,6 +24,25 @@ pub mod arena {
 
     use crate::{BlendMode, CompositeOperator, Surface};
 
+    /// Provide a unified interface for storing input and output and implementing operations on an
+    /// image
+    /// Example usage:
+    /// ```rust
+    /// use image::ImageResult;
+    /// #[cfg(feature = "image")]
+    /// fn main() -> ImageResult<()> {
+    ///     use plutofilter_rs::{ImageEditor, get_resource_path};
+    ///
+    ///     let base_file = get_resource_path(&["original_images"], "test-image.jpg");
+    ///     let editor = ImageEditor::open(&base_file);
+    ///     let output_path = get_resource_path(&["test_output_images", "example"], "test-image.jpg");
+    ///     editor
+    ///         .color_transform_contrast_inplace(0.97)
+    ///         .color_transform_hue_rotate_inplace(330.0)
+    ///         .color_transform_saturate_inplace(1.11)
+    ///         .save_to(&output_path)
+    /// }
+    /// ```
     #[derive(Debug)]
     pub struct ImageEditor {
         input_image_path: PathBuf,
@@ -29,6 +53,7 @@ pub mod arena {
     // TODO: Split this impl using typesafe builder pattern
     impl ImageEditor {
         // TODO: change to result type
+        /// Open an image and generate input and output buffers
         pub fn open(input_image_path: impl AsRef<Path>) -> Self {
             let input_image_path = input_image_path.as_ref().to_owned();
             let input_image = Self::open_image(&input_image_path);
@@ -63,11 +88,13 @@ pub mod arena {
             DynamicImage::ImageRgba8(rgba8_image_buffer)
         }
 
+        /// Saves output image to provided path
         pub fn save_to(self, output_path: impl AsRef<Path>) -> ImageResult<()> {
             let output_path = output_path.as_ref();
             self.output_image.save(output_path)
         }
 
+        /// saves the output in the input image path
         pub fn save(self) -> ImageResult<()> {
             self.output_image.save(&self.input_image_path)
         }

@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(feature = "image")]
 mod gaussian_blur_test {
     use plutofilter_rs::{ImageEditor, get_resource_path};
     type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
