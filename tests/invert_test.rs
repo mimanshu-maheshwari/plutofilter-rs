@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(feature = "image")]
 mod color_transform_invert_test {
     use plutofilter_rs::{ImageEditor, get_resource_path};
 

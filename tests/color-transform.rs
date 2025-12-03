@@ -1,13 +1,22 @@
+#[cfg(feature = "image")]
 mod brightness_test;
+#[cfg(feature = "image")]
 mod contrast_test;
+#[cfg(feature = "image")]
 mod grayscale_test;
+#[cfg(feature = "image")]
 mod hue_rotate_test;
+#[cfg(feature = "image")]
 mod invert_test;
+#[cfg(feature = "image")]
 mod opacity_test;
+#[cfg(feature = "image")]
 mod saturate_test;
+#[cfg(feature = "image")]
 mod sepia_test;
 
 #[cfg(test)]
+#[cfg(feature = "image")]
 mod color_transform_test {
     use plutofilter_rs::{ImageEditor, get_resource_path};
 

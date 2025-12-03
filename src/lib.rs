@@ -5,10 +5,13 @@
 mod error;
 mod surface;
 mod utils;
+#[cfg(feature = "image")]
 pub use arena::ImageEditor;
+pub use error::SurfaceError;
 pub use surface::{BlendMode, CompositeOperator, Surface};
 pub use utils::get_resource_path;
 
+#[cfg(feature = "image")]
 pub mod arena {
     use std::{
         panic,

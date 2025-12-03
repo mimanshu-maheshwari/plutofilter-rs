@@ -88,6 +88,7 @@ impl<'a> Surface<'a> {
         self.height
     }
 
+    #[cfg(feature = "image")]
     pub fn from_image(image: &'a mut DynamicImage) -> Self {
         let width = image.width();
         let height = image.height();

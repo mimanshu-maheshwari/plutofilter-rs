@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(feature = "image")]
 mod blend_modes_tests {
     use plutofilter_rs::{BlendMode, ImageEditor, get_resource_path};
     type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;

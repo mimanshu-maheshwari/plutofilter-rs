@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(feature = "image")]
 mod color_transform_contrast_test {
     use plutofilter_rs::{ImageEditor, get_resource_path};
     type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
