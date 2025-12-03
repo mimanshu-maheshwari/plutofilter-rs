@@ -47,8 +47,10 @@ pub enum CompositeOperator {
     Xor,
 }
 
-/// Represents a 2D image surface in ARGB32 premultiplied format.
-///
+// OLD(Represents a 2D image surface in ARGB32 premultiplied format.)
+/// Represents a 2D image surface in RGBA32 premultiplied format.
+/// These pixels are unpacked as:
+/// `let [r, g, b, a] = pixel.to_le_bytes();`
 /// Each pixel is a 32-bit unsigned integer with channels ordered as: alpha, red, green, blue.
 /// The red, green, and blue channels are premultiplied by the alpha channel.
 /// That is, red = red * alpha / 255, and similarly for green and blue.
@@ -110,7 +112,7 @@ impl<'a> Surface<'a> {
         }
     }
 
-    pub(crate) fn copy_output_into_input(input: &mut Self, output: &Self) {
+    pub fn copy_output_into_input(input: &mut Self, output: &Self) {
         input.pixels.copy_from_slice(output.pixels);
     }
     /// Creates a surface from a raw pixel buffer.
@@ -211,7 +213,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `matrix` - A 5x4 color matrix represented as a 20-element float array.
     ///
-    pub(crate) fn color_transform(input: &mut Self, output: &mut Self, matrix: [f32; 20]) {
+    pub fn color_transform(input: &mut Self, output: &mut Self, matrix: [f32; 20]) {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
@@ -259,7 +261,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The opacity multiplier (0 for fully transparent, 1 for unchanged).
     ///
-    pub(crate) fn color_transform_opacity(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_opacity(input: &mut Self, output: &mut Self, amount: f32) {
         let matrix = [
             1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
             0.0, amount, 0.0,
@@ -277,7 +279,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The brightness multiplier (1 for unchanged, <1 to darken, >1 to brighten).
     ///
-    pub(crate) fn color_transform_brightness(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_brightness(input: &mut Self, output: &mut Self, amount: f32) {
         let matrix = [
             amount, 0.0, 0.0, 0.0, 0.0, 0.0, amount, 0.0, 0.0, 0.0, 0.0, 0.0, amount, 0.0, 0.0,
             0.0, 0.0, 0.0, 1.0, 0.0,
@@ -295,7 +297,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The inversion amount (0 for unchanged, 1 for fully inverted).
     ///
-    pub(crate) fn color_transform_invert(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_invert(input: &mut Self, output: &mut Self, amount: f32) {
         let scale = 1.0 - 2.0 * amount;
         let matrix = [
             scale, 0.0, 0.0, 0.0, amount, 0.0, scale, 0.0, 0.0, amount, 0.0, 0.0, scale, 0.0,
@@ -314,7 +316,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The contrast multiplier (1 for unchanged, <1 to reduce contrast, >1 to increase contrast).
     ///
-    pub(crate) fn color_transform_contrast(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_contrast(input: &mut Self, output: &mut Self, amount: f32) {
         let offset = (1.0 - amount) * 0.5;
         let matrix = [
             amount, 0.0, 0.0, 0.0, offset, 0.0, amount, 0.0, 0.0, offset, 0.0, 0.0, amount, 0.0,
@@ -333,7 +335,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The saturation multiplier (1 for unchanged, 0 for fully desaturated, >1 to increase saturation).
     ///
-    pub(crate) fn color_transform_saturate(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_saturate(input: &mut Self, output: &mut Self, amount: f32) {
         let matrix = [
             0.213 + 0.787 * amount,
             0.715 - 0.715 * amount,
@@ -369,7 +371,7 @@ impl<'a> Surface<'a> {
     /// *`output` - The output surface.
     /// *`amount` -  The grayscale amount (0 for unchanged, 1 for fully grayscale).
     ///
-    pub(crate) fn color_transform_grayscale(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_grayscale(input: &mut Self, output: &mut Self, amount: f32) {
         let inv_amount = 1.0 - amount;
         let matrix = [
             inv_amount + amount * 0.2126,
@@ -407,7 +409,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `amount` - The sepia amount (0 for unchanged, 1 for fully sepia).
     ///
-    pub(crate) fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
+    pub fn color_transform_sepia(input: &mut Self, output: &mut Self, amount: f32) {
         let inv_amount = 1.0 - amount;
         let matrix = [
             0.393 + 0.607 * inv_amount,
@@ -445,7 +447,7 @@ impl<'a> Surface<'a> {
     /// * `output` - The output surface.
     /// * `angle` - The hue rotation angle in degrees (0 for unchanged, 360 for full rotation).
     ///
-    pub(crate) fn color_transform_hue_rotate(input: &mut Self, output: &mut Self, angle: f32) {
+    pub fn color_transform_hue_rotate(input: &mut Self, output: &mut Self, angle: f32) {
         let a1 = f32::cos(deg2rad(angle));
         let a2 = f32::sin(deg2rad(angle));
         let matrix = [
@@ -486,7 +488,7 @@ impl<'a> Surface<'a> {
     /// * `input` - in The input surface.
     /// * `output` - out The output surface.
     ///
-    pub(crate) fn color_transform_luminance_to_alpha(input: &mut Self, output: &mut Self) {
+    pub fn color_transform_luminance_to_alpha(input: &mut Self, output: &mut Self) {
         overlap_surface(input, output);
 
         for y in 0..output.height {
@@ -509,7 +511,7 @@ impl<'a> Surface<'a> {
     /// * `input`  - in The input surface.
     /// * `output` - out The output surface.
     ///
-    pub(crate) fn color_transform_srgb_to_linear_rgb(input: &mut Self, output: &mut Self) {
+    pub fn color_transform_srgb_to_linear_rgb(input: &mut Self, output: &mut Self) {
         overlap_surface(input, output);
         for y in 0..output.height {
             for x in 0..output.width {
@@ -555,7 +557,7 @@ impl<'a> Surface<'a> {
     /// * `std_deviation_x` - The standard deviation of the blur along the X axis.
     /// * `std_deviation_y` - The standard deviation of the blur along the Y axis.
     ///
-    pub(crate) fn gaussian_blur(
+    pub fn gaussian_blur(
         input: &mut Self,
         output: &mut Self,
         std_deviation_x: f32,
@@ -618,7 +620,7 @@ impl<'a> Surface<'a> {
     /// * `out` - The output surface.
     /// * `mode` - The blend mode to apply.
     ///
-    pub(crate) fn blend(input1: &mut Self, input2: &mut Self, output: &mut Self, mode: BlendMode) {
+    pub fn blend(input1: &mut Self, input2: &mut Self, output: &mut Self, mode: BlendMode) {
         overlap_surface3(input1, input2, output);
         match mode {
             BlendMode::Normal => blend_normal(input1, input2, output),
@@ -647,7 +649,7 @@ impl<'a> Surface<'a> {
     /// * `out` - The output surface.
     /// * `op` - The compositing operator to apply.
     ///
-    pub(crate) fn composite(in1: &mut Self, in2: &mut Self, out: &mut Self, op: CompositeOperator) {
+    pub fn composite(in1: &mut Self, in2: &mut Self, out: &mut Self, op: CompositeOperator) {
         overlap_surface3(in1, in2, out);
         match op {
             CompositeOperator::Over => composite_over(in1, in2, out),
@@ -675,7 +677,7 @@ impl<'a> Surface<'a> {
     /// * `k3` - The coefficient for in2.
     /// * `k4` - The constant bias term.
     ///
-    pub(crate) fn composite_arithmetic(
+    pub fn composite_arithmetic(
         in1: &mut Self,
         in2: &mut Self,
         out: &mut Self,

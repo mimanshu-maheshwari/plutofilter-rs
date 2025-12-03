@@ -1,6 +1,6 @@
 [package]
 name = "plutofilter-rs"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2024"
 authors = ["Mimanshu Maheshwari <maheshwarimimanshu@gmail.com>"]
 description = "Port of https://github.com/sammycage/plutofilter to rust"

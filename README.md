@@ -9,6 +9,8 @@ PlutoFilter is a zero-allocation image filter library. A Rust port of the origin
 ### Whats next
 
 ✓ Have a better interface to interact with API. (Design pattern like Builder | Partially Done)
+> Seeing more usage in older versions, I've exposed the Surface API's again as in 1st version. 
+> Only difference is it will now use the RGBA32 format.
 
 ✓ Introduce examples
 
